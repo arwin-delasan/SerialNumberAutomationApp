@@ -1,0 +1,62 @@
+Serial Number increments by 1
+Serial Number (Start)
+Serial Number (End)
+
+Random Number increments by 15
+Random Number (Start)
+Random Number (End)
+
+Explore the app more ZebraDesigner Pro 2
+
+Miss Contesa's Workflow
+Print -> Log ??
+
+Potential Stack
+Python
+
+Questions to Ponder
+
+Does ZebraDesignerPro 2 increment by itself??
+
+What does the database option of the ZebraDesigner Pro 2 do? 
+	- Can it get data from the database?
+ 	- Can it store data from the database?
+
+Is it possible to trigger a python function on print?
+	- If yes, on every print
+		store details to database
+
+How are the barcodes generated?? (Do I need to concern myself with this?)
+
+Objectives
+- Find a way to fetch the serial number and random number 
+- Save the serial number and random number to an excel file (Test)
+- Save to local db or odoo system
+
+Should it be bulk? or by serial number?
+
+Approach 1
+- Wait for the printing for ex. printing 3500 qty produces 3500 serial numbers
+- After printing run a script that adds 3500 serial numbers to the database.
+	- A GUI will be provided for navigating the app
+
+Possible Complications
+- Is it sure that all serial numbers will be used?
+- What happens if the printer is interrupted?
+- Skipping of serial numbers
+
+Prerequisite
+- Last serial number printed
+
+Questions to Ask miss Contesa for Approach 1
+- What happens if the printing is interrupted?
+- How often is the printing interrupted?
+
+Approach 2
+- Every print run a db call (but this is expensive)
+- Ruling out this approach
+- The only way is bulk
+
+Processes that need to be in the pipeline
+- Deduplication (Make sure that a serial number/random number will not be duped)
+- Export to CSV/Excel (Per Date Time Range)
