@@ -16,9 +16,12 @@ import os
 import signal
 import sqlite3
 import subprocess
+import time
 import tkinter as tk
 from tkinter import messagebox
 from pathlib import Path
+
+import pyautogui
 
 # ---------------------------------------------------------------------------
 # Configurable constants
@@ -38,7 +41,6 @@ SERIAL_SEED = 1024930          # first real serial will be 1024931
 RANDOM_SEED = 808041           # first real random will be 808056 (+15)
 SERIAL_STEP = 1
 RANDOM_STEP = 15
-
 
 
 # ===================================================================
@@ -290,6 +292,27 @@ def write_csv(serial_numbers: list[int],
 # ZebraDesigner Pro 2 launcher
 # ===================================================================
 
+def _zebra_keyboard_sequence() -> None:
+    """
+    After Zebra opens:
+    1. Wait for demo modal, Enter to dismiss it
+    2. Wait, Enter to press OK
+    3. Wait, Ctrl+R to trigger print
+    4. Wait, Enter to confirm preview
+    """
+    try:
+        time.sleep(3)
+        pyautogui.press('enter')      # dismiss demo modal
+        time.sleep(2)
+        pyautogui.press('enter')      # press OK
+        time.sleep(2)
+        pyautogui.hotkey('ctrl', 'r') # trigger print
+        time.sleep(2)
+        pyautogui.press('enter')      # confirm preview
+    except Exception:
+        pass
+
+
 def _open_zebra_label(label_path: Path) -> subprocess.Popen | None:
     """Open the .lbl file in ZebraDesigner Pro 2 via file association."""
     try:
@@ -352,6 +375,9 @@ class SerialExporterApp:
 
         # --- Zebra process handle --------------------------------------
         self._zebra_process: subprocess.Popen | None = None
+
+        # Close Zebra when user clicks the X button
+        self.root.protocol("WM_DELETE_WINDOW", self._on_exit)
 
         self._show_screen1()
 
@@ -640,6 +666,7 @@ class SerialExporterApp:
         label_path = Path.cwd() / ZEBRA_LABEL_FILE
         if label_path.exists():
             self._zebra_process = _open_zebra_label(label_path)
+            _zebra_keyboard_sequence()
 
         # --- Store session data for Screen 2 ---------------------------
         self._current_session = session
@@ -681,29 +708,40 @@ class SerialExporterApp:
             font=RESULT_FONT, bg=BG_COLOR, fg="#0066cc"
         ).grid(row=2, column=0, columnspan=2, pady=(0, 15))
 
-        # Confirmation entry
-        tk.Label(
-            frame, text="Last serial number that printed successfully:",
-            wraplength=480, justify="left",
-            font=LARGE_FONT, bg=BG_COLOR
-        ).grid(row=3, column=0, sticky="w", pady=(0, 10))
-        self.confirm_entry = tk.Entry(
-            frame, width=15, font=LARGE_FONT, justify="center"
-        )
-        self.confirm_entry.grid(row=3, column=1, sticky="ew", pady=(0, 10))
-        self.confirm_entry.focus_set()
-
-        # Buttons row
+        # Buttons row — 3 choices
         btn_frame = tk.Frame(frame, bg=BG_COLOR)
-        btn_frame.grid(row=4, column=0, columnspan=2, pady=(5, 15))
-        confirm_btn = self._make_button(
-            btn_frame, "Confirm", self._on_confirm, bg="#008000"
+        btn_frame.grid(row=3, column=0, columnspan=2, pady=(5, 15))
+        complete_btn = self._make_button(
+            btn_frame, "Complete", self._on_complete, bg="#008000"
         )
-        confirm_btn.pack(side="left", padx=(0, 15))
+        complete_btn.pack(side="left", padx=(0, 10))
+        incomplete_btn = self._make_button(
+            btn_frame, "Incomplete", self._on_show_incomplete, bg="#cc8800"
+        )
+        incomplete_btn.pack(side="left", padx=(0, 10))
         void_btn = self._make_button(
-            btn_frame, "Cancel Entire Session", self._on_void, bg="#cc3300"
+            btn_frame, "Cancel Session", self._on_void, bg="#cc3300"
         )
         void_btn.pack(side="left")
+
+        # Hidden incomplete-entry row (shown only on demand)
+        self._incomplete_frame = tk.Frame(frame, bg=BG_COLOR)
+        self._incomplete_frame.grid(row=4, column=0, columnspan=2, pady=(0, 10))
+        tk.Label(
+            self._incomplete_frame,
+            text="Last serial number that printed successfully:",
+            wraplength=480, justify="left",
+            font=LARGE_FONT, bg=BG_COLOR
+        ).grid(row=0, column=0, sticky="w", pady=(0, 10))
+        self.confirm_entry = tk.Entry(
+            self._incomplete_frame, width=15, font=LARGE_FONT, justify="center"
+        )
+        self.confirm_entry.grid(row=0, column=1, sticky="ew", pady=(0, 10))
+        confirm_btn2 = self._make_button(
+            self._incomplete_frame, "Confirm Incomplete",
+            self._on_confirm_incomplete, bg="#008000"
+        )
+        confirm_btn2.grid(row=1, column=0, columnspan=2, pady=(5, 5))
 
         # Result message
         self.screen2_result = tk.Label(
@@ -712,11 +750,27 @@ class SerialExporterApp:
         )
         self.screen2_result.grid(row=5, column=0, columnspan=2, pady=(0, 5))
 
+        # Hide incomplete frame by default
+        self._incomplete_frame.grid_remove()
+
         frame.columnconfigure(1, weight=1)
         return frame
 
     # ------------------------------------------------------------------
-    def _on_confirm(self) -> None:
+    def _on_complete(self) -> None:
+        """All labels printed — confirm up to serial_range_end."""
+        s = self._current_session
+        if s is None:
+            return
+        self._do_confirm(s["serial_range_end"])
+
+    def _on_show_incomplete(self) -> None:
+        """Show the serial entry field for partial completion."""
+        self._incomplete_frame.grid()
+        self.confirm_entry.focus_set()
+
+    def _on_confirm_incomplete(self) -> None:
+        """Validate and submit the incomplete entry."""
         s = self._current_session
         if s is None:
             return
@@ -734,6 +788,15 @@ class SerialExporterApp:
             self.screen2_result.config(
                 text="Please enter a whole number.", fg="red"
             )
+            return
+
+        self._do_confirm(last_good)
+
+    # ------------------------------------------------------------------
+    def _do_confirm(self, last_good: int) -> None:
+        """Shared confirmation logic — updates DB, closes Zebra, returns."""
+        s = self._current_session
+        if s is None:
             return
 
         start = s["serial_range_start"]
@@ -754,7 +817,6 @@ class SerialExporterApp:
             )
             return
 
-        # Determine status text for feedback
         if last_good >= end:
             status_text = "confirmed (all labels printed)"
         else:
