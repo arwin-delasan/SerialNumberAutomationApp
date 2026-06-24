@@ -1,0 +1,9 @@
+[print_queue]
+FileType=VARYING
+FileEncoding=AUTO
+Delimiter="
+Separator=,
+StartAtRow=2
+UseHeaderRow=1
+Field1=SerialNumber,CHAR,7,0,0
+Field2=RandomNumber,CHAR,6,0,13
