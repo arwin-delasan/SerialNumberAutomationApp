@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Confirm Print · Serial Tracker{% endblock %}
+
+{% block content %}
+
+<!-- Top bar -->
+<div class="flex items-center justify-between px-5 py-2.5 border-b border-gray-200 bg-white shrink-0">
+  <div class="flex items-center gap-2">
+    <a href="/print" class="text-gray-400 hover:text-gray-600 transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+      </svg>
+    </a>
+    <h1 class="text-sm font-semibold text-gray-800">Confirm Print Session</h1>
+    <span class="text-[11px] font-mono text-gray-400">#{{ session.session_id }}</span>
+  </div>
+  <a href="/print/csv/{{ session.session_id }}"
+     class="flex items-center gap-1.5 border border-gray-300 hover:bg-gray-50 text-gray-700 text-[12px] font-medium px-3 py-1.5 rounded-md transition-colors">
+    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+    </svg>
+    Download CSV
+  </a>
+</div>
+
+<div class="flex-1 overflow-y-auto p-8 flex items-start justify-center">
+  <div class="w-full max-w-lg space-y-5">
+
+    {% if error %}
+    <div class="bg-red-50 border border-red-200 text-red-700 text-[12px] rounded-lg px-4 py-3">
+      {{ error }}
+    </div>
+    {% endif %}
+
+    <!-- Session info cards -->
+    <div class="grid grid-cols-3 gap-3">
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <p class="text-[11px] text-gray-400 font-medium mb-1">Serials</p>
+        <p class="text-sm font-mono font-bold text-gray-900">{{ "{:,}".format(session.serial_range_start) }}</p>
+        <p class="text-[11px] text-gray-400 mt-0.5">→ {{ "{:,}".format(session.serial_range_end) }}</p>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <p class="text-[11px] text-gray-400 font-medium mb-1">Quantity</p>
+        <p class="text-2xl font-mono font-bold text-gray-900">{{ "{:,}".format(session.quantity_requested) }}</p>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <p class="text-[11px] text-gray-400 font-medium mb-1">Session ID</p>
+        <p class="text-2xl font-mono font-bold text-gray-900">#{{ session.session_id }}</p>
+      </div>
+    </div>
+
+    <!-- ZebraDesigner instructions -->
+    <div class="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4">
+      <div class="flex items-start gap-3">
+        <div class="mt-0.5 shrink-0 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+          <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01"/>
+          </svg>
+        </div>
+        <div>
+          <p class="text-[12px] font-semibold text-blue-800 mb-1.5">Printing Instructions</p>
+          <ol class="text-[12px] text-blue-700 space-y-1 list-decimal list-inside">
+            <li>Open <span class="font-mono font-semibold">ZebraDesigner Pro 2</span></li>
+            <li>Load label file: <span class="font-mono font-semibold">AutomatedZebraPrinter.lbl</span></li>
+            <li>Print <span class="font-mono font-semibold">{{ "{:,}".format(session.quantity_requested) }}</span> labels</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action panel -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-gray-100 bg-gray-50">
+        <p class="text-[12px] font-semibold text-gray-700">After printing, mark this session as:</p>
+      </div>
+
+      <div class="px-5 py-5 space-y-3">
+
+        <!-- Complete -->
+        <form method="POST" action="/print/complete/{{ session.session_id }}">
+          <button type="submit"
+                  class="w-full flex items-center justify-between bg-green-600 hover:bg-green-700 text-white text-[13px] font-semibold px-4 py-3 rounded-lg transition-colors">
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+              </svg>
+              Complete — all {{ "{:,}".format(session.quantity_requested) }} labels printed
+            </span>
+            <span class="text-green-200 text-[11px]">Confirms full range</span>
+          </button>
+        </form>
+
+        <!-- Incomplete -->
+        <div class="border border-yellow-200 rounded-lg overflow-hidden">
+          <button type="button" onclick="toggleIncomplete()"
+                  class="w-full flex items-center justify-between bg-yellow-50 hover:bg-yellow-100 text-yellow-800 text-[13px] font-semibold px-4 py-3 transition-colors">
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              Incomplete — stopped early
+            </span>
+            <svg id="incompleteChevron" class="w-4 h-4 text-yellow-600 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div id="incompleteForm" class="hidden border-t border-yellow-200 bg-white px-4 py-4">
+            <form method="POST" action="/print/incomplete/{{ session.session_id }}" class="space-y-3">
+              <div>
+                <label class="block text-[12px] font-medium text-gray-700 mb-1.5">
+                  Last successfully printed serial number
+                </label>
+                <input type="number" name="last_good_serial" required
+                       min="{{ session.serial_range_start }}" max="{{ session.serial_range_end }}"
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-[13px] font-mono focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                       placeholder="{{ session.serial_range_start }}"/>
+                <p class="text-[11px] text-gray-400 mt-1">
+                  Range: {{ "{:,}".format(session.serial_range_start) }} – {{ "{:,}".format(session.serial_range_end) }}
+                </p>
+              </div>
+              <button type="submit"
+                      class="w-full bg-yellow-500 hover:bg-yellow-600 text-white text-[13px] font-semibold py-2 rounded-lg transition-colors">
+                Confirm Incomplete
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Void / Cancel -->
+        <form method="POST" action="/print/void/{{ session.session_id }}"
+              onsubmit="return confirm('Cancel this session? The reserved serial range will be voided and cannot be recovered.')">
+          <button type="submit"
+                  class="w-full flex items-center justify-center gap-2 border border-gray-300 hover:bg-red-50 hover:border-red-300 hover:text-red-700 text-gray-600 text-[13px] font-medium px-4 py-2.5 rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+            Cancel Session
+          </button>
+        </form>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function toggleIncomplete() {
+    const form    = document.getElementById('incompleteForm');
+    const chevron = document.getElementById('incompleteChevron');
+    const hidden  = form.classList.toggle('hidden');
+    chevron.style.transform = hidden ? '' : 'rotate(180deg)';
+  }
+</script>
+
+{% endblock %}

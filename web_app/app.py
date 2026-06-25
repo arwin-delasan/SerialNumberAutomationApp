@@ -1,7 +1,7 @@
 import os
 from fastapi import FastAPI
 from fastapi.templating import Jinja2Templates
-from web_app.routers import dashboard, sessions, export, serials
+from web_app.routers import dashboard, sessions, export, serials, print_session
 
 app = FastAPI(title="Serial Management")
 
@@ -11,3 +11,4 @@ app.include_router(dashboard.router)
 app.include_router(sessions.router)
 app.include_router(export.router)
 app.include_router(serials.router)
+app.include_router(print_session.router)

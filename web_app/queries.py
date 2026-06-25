@@ -55,10 +55,11 @@ def get_session_rows(conn, session_id: int):
         return cur.fetchall()
 
 
-def get_max_confirmed_serial(conn):
+def get_serial_bounds(conn):
     with conn.cursor(dictionary=True) as cur:
         cur.execute("""
-            SELECT MAX(sr.serial_number) AS max_serial
+            SELECT MIN(sr.serial_number) AS min_serial,
+                   MAX(sr.serial_number) AS max_serial
             FROM session_rows sr
             JOIN print_sessions ps ON sr.session_id = ps.session_id
             WHERE ps.status IN ('confirmed', 'partial')
@@ -71,7 +72,7 @@ def list_all_serials(conn, page: int, page_size: int, sort: str = "desc"):
     order = "DESC" if sort == "desc" else "ASC"
     with conn.cursor(dictionary=True) as cur:
         cur.execute(f"""
-            SELECT DISTINCT sr.serial_number, sr.random_number, sr.session_id, ps.status
+            SELECT DISTINCT sr.serial_number, sr.random_number, sr.session_id, sr.status AS serial_status
             FROM session_rows sr
             JOIN print_sessions ps ON sr.session_id = ps.session_id
             WHERE ps.status IN ('confirmed', 'partial')

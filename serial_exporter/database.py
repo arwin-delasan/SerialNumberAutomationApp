@@ -72,9 +72,19 @@ class DatabaseManager:
                 session_id INT NOT NULL,
                 serial_number INT NOT NULL,
                 random_number INT NOT NULL,
+                status ENUM('used', 'unused') NOT NULL DEFAULT 'unused',
                 FOREIGN KEY (session_id) REFERENCES print_sessions(session_id)
             ) ENGINE=InnoDB;
         """)
+        # Migrate existing tables that were created before this column existed
+        try:
+            cursor.execute("""
+                ALTER TABLE session_rows
+                ADD COLUMN status ENUM('used', 'unused') NOT NULL DEFAULT 'unused'
+            """)
+            conn.commit()
+        except Exception:
+            conn.rollback()
         conn.commit()
 
     # ------------------------------------------------------------------

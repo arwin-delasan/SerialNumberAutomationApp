@@ -96,10 +96,10 @@
           <a href="/sessions/{{ row.session_id }}" class="hover:text-blue-600 hover:underline">#{{ row.session_id }}</a>
         </td>
         <td class="px-4 py-2">
-          {% if row.status == 'confirmed' %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-100 text-green-700">Confirmed</span>
-          {% elif row.status == 'partial' %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-yellow-100 text-yellow-700">Partial</span>
+          {% if row.serial_status == 'used' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-100 text-green-700">Used</span>
+          {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 text-gray-500">Unused</span>
           {% endif %}
         </td>
       </tr>
@@ -169,17 +169,21 @@
     <div class="px-6 py-5 space-y-4">
       <div>
         <label class="block text-[12px] font-medium text-gray-700 mb-1.5">Starting Serial</label>
-        <input id="exportStart" type="number" min="1"
+        <input id="exportStart" type="number"
+               min="{{ min_serial or 1 }}" max="{{ max_serial or '' }}"
                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-[13px] font-mono focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-               placeholder="e.g. 1000186"/>
+               placeholder="{{ min_serial or '' }}"/>
+        {% if min_serial %}<p class="text-[11px] text-gray-400 mt-1">Min: {{ "{:,}".format(min_serial) }}</p>{% endif %}
       </div>
       <div>
         <label class="block text-[12px] font-medium text-gray-700 mb-1.5">Ending Serial</label>
-        <input id="exportEnd" type="number" min="1"
+        <input id="exportEnd" type="number"
+               min="{{ min_serial or 1 }}" max="{{ max_serial or '' }}"
                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-[13px] font-mono focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-               placeholder="e.g. 1000295"/>
+               placeholder="{{ max_serial or '' }}"/>
+        {% if max_serial %}<p class="text-[11px] text-gray-400 mt-1">Max: {{ "{:,}".format(max_serial) }}</p>{% endif %}
       </div>
-      <p id="exportError" class="text-[12px] text-red-500 hidden">Start serial must be less than or equal to end serial.</p>
+      <p id="exportError" class="text-[12px] text-red-500 hidden"></p>
     </div>
 
     <!-- Footer -->
@@ -202,16 +206,14 @@
 <script>
   const FIRST_SERIAL = {{ first_serial or 'null' }};
   const LAST_SERIAL  = {{ last_serial  or 'null' }};
+  const MIN_SERIAL   = {{ min_serial   or 'null' }};
+  const MAX_SERIAL   = {{ max_serial   or 'null' }};
 
   function openExportModal() {
     const modal = document.getElementById('exportModal');
-    // Pre-fill with the range currently visible on this page
-    if (FIRST_SERIAL !== null && LAST_SERIAL !== null) {
-      const lo = Math.min(FIRST_SERIAL, LAST_SERIAL);
-      const hi = Math.max(FIRST_SERIAL, LAST_SERIAL);
-      document.getElementById('exportStart').value = lo;
-      document.getElementById('exportEnd').value   = hi;
-    }
+    if (MIN_SERIAL !== null) document.getElementById('exportStart').value = MIN_SERIAL;
+    if (MAX_SERIAL !== null) document.getElementById('exportEnd').value   = MAX_SERIAL;
+    document.getElementById('exportError').textContent = '';
     document.getElementById('exportError').classList.add('hidden');
     modal.classList.remove('hidden');
     modal.classList.add('flex');
@@ -229,16 +231,32 @@
     const end   = parseInt(document.getElementById('exportEnd').value,   10);
     const err   = document.getElementById('exportError');
 
-    if (isNaN(start) || isNaN(end) || start > end) {
+    if (isNaN(start) || isNaN(end)) {
+      err.textContent = 'Please enter both start and end serial numbers.';
       err.classList.remove('hidden');
       return;
     }
+    if (start > end) {
+      err.textContent = 'Starting serial must be less than or equal to ending serial.';
+      err.classList.remove('hidden');
+      return;
+    }
+    if (MIN_SERIAL !== null && start < MIN_SERIAL) {
+      err.textContent = `Starting serial cannot be less than ${MIN_SERIAL.toLocaleString()}.`;
+      err.classList.remove('hidden');
+      return;
+    }
+    if (MAX_SERIAL !== null && end > MAX_SERIAL) {
+      err.textContent = `Ending serial cannot be greater than ${MAX_SERIAL.toLocaleString()}.`;
+      err.classList.remove('hidden');
+      return;
+    }
+
     err.classList.add('hidden');
     window.location.href = `/serials/export?start_serial=${start}&end_serial=${end}`;
     closeExportModal();
   }
 
-  // Close on Escape
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') closeExportModal();
   });

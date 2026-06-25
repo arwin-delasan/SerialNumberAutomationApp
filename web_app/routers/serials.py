@@ -28,9 +28,12 @@ def serials_view(
 ):
     rows, total = queries.list_all_serials(db, page, PAGE_SIZE, sort)
     total_pages = max(1, math.ceil(total / PAGE_SIZE))
+    bounds = queries.get_serial_bounds(db)
 
     first_serial = rows[0]["serial_number"] if rows else None
     last_serial = rows[-1]["serial_number"] if rows else None
+    min_serial = bounds["min_serial"] if bounds else None
+    max_serial = bounds["max_serial"] if bounds else None
 
     return templates.TemplateResponse(request, "serials.html", {
         "rows": rows,
@@ -40,6 +43,8 @@ def serials_view(
         "total_pages": total_pages,
         "first_serial": first_serial,
         "last_serial": last_serial,
+        "min_serial": min_serial,
+        "max_serial": max_serial,
     })
 
 
