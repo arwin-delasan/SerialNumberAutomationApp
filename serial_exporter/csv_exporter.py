@@ -1,7 +1,7 @@
 """
 csv_exporter
 ============================
-CSV export utilities for ZebraDesigner Pro 2.
+CSV export utilities.
 """
 
 from __future__ import annotations

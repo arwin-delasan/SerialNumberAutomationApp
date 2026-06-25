@@ -10,32 +10,34 @@ import tkinter as tk
 from tkinter import messagebox
 from typing import Dict
 
-from config import BG_COLOR, LARGE_FONT, TITLE_FONT, BTN_FONT, RESULT_FONT
+from config import (
+    BG_COLOR, CARD_BG, PRIMARY_COLOR, PRIMARY_DARK, PRIMARY_LIGHT,
+    SUCCESS_COLOR, SUCCESS_BG, SUCCESS_BORDER, TEXT_PRIMARY, TEXT_SECONDARY,
+    TEXT_MUTED, BORDER_COLOR, SHADOW_COLOR, ERROR_COLOR, WARNING_COLOR,
+    LARGE_FONT, TITLE_FONT, BTN_FONT, RESULT_FONT, CARD_TITLE_FONT, DISPLAY_FONT
+)
 
 
 class SerialExporterApp:
     """Two-screen Tkinter app with MySQL-backed serial/random counters."""
 
-    def __init__(self, root: tk.Tk, db) -> None:  # DatabaseManager type avoided for circular imports
+    def __init__(self, root: tk.Tk, db) -> None:
         self.root = root
         self.db = db
         self.root.title("Serial Number Automation")
         self.root.configure(bg=BG_COLOR)
-        self.root.geometry("560x480")
-        self.root.minsize(500, 420)
+        self.root.geometry("800x700")
+        self.root.minsize(700, 600)
         self.root.resizable(True, True)
 
         self._screen1_frame: tk.Frame | None = None
         self._screen2_frame: tk.Frame | None = None
         self._current_session: Dict | None = None
-        self._zebra_process = None
 
         self.root.protocol("WM_DELETE_WINDOW", self._on_exit)
+        self.root.bind("<Configure>", self._on_window_resize)
         self._show_screen1()
 
-    # ------------------------------------------------------------------
-    # Screen helpers
-    # ------------------------------------------------------------------
     def _clear(self) -> None:
         for f in (self._screen1_frame, self._screen2_frame):
             if f is not None:
@@ -53,88 +55,157 @@ class SerialExporterApp:
         self._screen2_frame = self._build_screen2()
         self._screen2_frame.pack(fill="both", expand=True)
 
-    def _make_button(self, parent, text: str, command, bg: str = "#0066cc") -> tk.Button:
+    def _on_window_resize(self, event):
+        if event.widget == self.root:
+            width = self.root.winfo_width()
+            wrap = max(300, width - 140)
+            for frame in (self._screen1_frame, self._screen2_frame):
+                if frame:
+                    for widget in frame.winfo_children():
+                        self._update_widget_wrap(widget, wrap)
+
+    def _update_widget_wrap(self, widget, wrap_length):
+        if hasattr(widget, 'config'):
+            try:
+                widget.config(wraplength=wrap_length)
+            except:
+                pass
+        for child in widget.winfo_children():
+            self._update_widget_wrap(child, wrap_length)
+
+    def _make_button(self, parent, text: str, command, bg: str = PRIMARY_COLOR, width: int = 20) -> tk.Button:
         return tk.Button(
             parent, text=text, font=BTN_FONT, bg=bg, fg="white",
-            padx=20, pady=8, cursor="hand2", command=command,
+            padx=20, pady=10, cursor="hand2", command=command, width=width,
+            activebackground=PRIMARY_DARK, activeforeground="white",
+            relief="flat", borderwidth=0
         )
 
-    # ------------------------------------------------------------------
-    # Screen 1 — Request
-    # ------------------------------------------------------------------
+    def _create_card(self, parent, title: str, value: str) -> tk.Frame:
+        card = tk.Frame(parent, bg=CARD_BG, relief="solid", borderwidth=1, highlightbackground=BORDER_COLOR, highlightthickness=1)
+        card.container = tk.Frame(card, bg=CARD_BG, padx=20, pady=15)
+        card.container.pack(fill="both", expand=True)
+        
+        tk.Label(
+            card.container, text=title, font=CARD_TITLE_FONT,
+            bg=CARD_BG, fg=TEXT_SECONDARY
+        ).pack(anchor="w")
+        
+        tk.Label(
+            card.container, text=value, font=DISPLAY_FONT,
+            bg=CARD_BG, fg=SUCCESS_COLOR
+        ).pack(anchor="w", pady=(5, 0))
+        
+        return card
+
     def _build_screen1(self) -> tk.Frame:
-        frame = tk.Frame(self.root, padx=30, pady=25, bg=BG_COLOR)
+        frame = tk.Frame(self.root, bg=BG_COLOR)
 
-        tk.Label(frame, text="Serial Number Automation", font=TITLE_FONT, bg=BG_COLOR).grid(
-            row=0, column=0, columnspan=2, pady=(0, 20)
-        )
+        header_frame = tk.Frame(frame, bg=BG_COLOR)
+        header_frame.pack(fill="x", padx=40, pady=(25, 20))
+        
+        tk.Label(
+            header_frame, text="Serial Number Automation",
+            font=TITLE_FONT, bg=BG_COLOR, fg=TEXT_PRIMARY
+        ).pack(side="left")
 
         if not self.db.has_counter():
-            tk.Label(
-                frame, text="This is the first time running the app.\nEnter the starting values:",
-                wraplength=480, justify="left", font=LARGE_FONT, bg=BG_COLOR, fg="#333333"
-            ).grid(row=1, column=0, columnspan=2, pady=(0, 15))
-
-            tk.Label(frame, text="Starting serial number:", font=LARGE_FONT, bg=BG_COLOR).grid(
-                row=2, column=0, sticky="w", pady=(0, 5)
-            )
-            self.start_serial_entry = tk.Entry(frame, width=15, font=LARGE_FONT, justify="center")
-            self.start_serial_entry.grid(row=2, column=1, sticky="ew", pady=(0, 5))
-            self.start_serial_entry.focus_set()
-
-            tk.Label(frame, text="Starting random number:", font=LARGE_FONT, bg=BG_COLOR).grid(
-                row=3, column=0, sticky="w", pady=(0, 5)
-            )
-            self.start_random_entry = tk.Entry(frame, width=15, font=LARGE_FONT, justify="center")
-            self.start_random_entry.grid(row=3, column=1, sticky="ew", pady=(0, 5))
-
-            tk.Label(frame, text="Number of labels to print:", font=LARGE_FONT, bg=BG_COLOR).grid(
-                row=4, column=0, sticky="w", pady=(10, 15)
-            )
-            self.qty_entry = tk.Entry(frame, width=15, font=LARGE_FONT, justify="center")
-            self.qty_entry.grid(row=4, column=1, sticky="ew", pady=(10, 15))
-
-            self._make_button(frame, "Start Session", self._on_first_start).grid(
-                row=5, column=0, columnspan=2, pady=(10, 15)
-            )
-            self._make_button(frame, "Exit", self._on_exit, bg="#cc3300").grid(
-                row=6, column=0, columnspan=2, pady=(0, 5)
-            )
-
-            self.screen1_result = tk.Label(frame, text="", wraplength=480, justify="left", font=RESULT_FONT, bg=BG_COLOR)
-            self.screen1_result.grid(row=7, column=0, columnspan=2, pady=(0, 5))
+            self._build_initial_setup(frame)
         else:
-            next_serial = self.db.get_next_serial()
-            next_random = self.db.get_next_random()
+            self._build_existing_session(frame)
 
-            tk.Label(
-                frame, text=f"Next serial number:  {next_serial:,}",
-                wraplength=480, justify="left", font=("Segoe UI", 13, "bold"), bg=BG_COLOR, fg="#006600"
-            ).grid(row=1, column=0, columnspan=2, pady=(0, 5))
-            tk.Label(
-                frame, text=f"Next random number:  {next_random:,}",
-                wraplength=480, justify="left", font=("Segoe UI", 13, "bold"), bg=BG_COLOR, fg="#006600"
-            ).grid(row=2, column=0, columnspan=2, pady=(0, 15))
-
-            tk.Label(frame, text="Number of labels to print:", font=LARGE_FONT, bg=BG_COLOR).grid(
-                row=3, column=0, sticky="w", pady=(0, 15)
-            )
-            self.qty_entry = tk.Entry(frame, width=15, font=LARGE_FONT, justify="center")
-            self.qty_entry.grid(row=3, column=1, sticky="ew", pady=(0, 15))
-            self.qty_entry.focus_set()
-
-            btn_frame = tk.Frame(frame, bg=BG_COLOR)
-            btn_frame.grid(row=4, column=0, columnspan=2, pady=(10, 15))
-            self._make_button(btn_frame, "Start Session", self._on_start_session).pack(side="left", padx=(0, 15))
-            self._make_button(btn_frame, "Exit", self._on_exit, bg="#cc3300").pack(side="left")
-
-            self.screen1_result = tk.Label(frame, text="", wraplength=480, justify="left", font=RESULT_FONT, bg=BG_COLOR)
-            self.screen1_result.grid(row=5, column=0, columnspan=2, pady=(0, 5))
-
-        frame.columnconfigure(1, weight=1)
         return frame
 
-    # ------------------------------------------------------------------
+    def _build_initial_setup(self, parent: tk.Frame) -> None:
+        container = tk.Frame(parent, bg=BG_COLOR)
+        container.pack(fill="both", expand=True, padx=40, pady=10)
+
+        tk.Label(
+            container, text="Welcome! First Time Setup",
+            font=LARGE_FONT, bg=BG_COLOR, fg=TEXT_PRIMARY
+        ).pack(anchor="w", pady=(0, 20))
+
+        form_card = tk.Frame(container, bg=CARD_BG, relief="solid", borderwidth=1,
+                             highlightbackground=BORDER_COLOR, highlightthickness=1)
+        form_card.pack(fill="both", expand=True, pady=(0, 15))
+        
+        inner_form = tk.Frame(form_card, bg=CARD_BG, padx=25, pady=20)
+        inner_form.pack(fill="both", expand=True)
+
+        self._create_form_field(inner_form, "Starting Serial Number:", "start_serial_entry", 0)
+        self._create_form_field(inner_form, "Starting Random Number:", "start_random_entry", 1)
+        self._create_form_field(inner_form, "Number of Labels to Print:", "qty_entry", 2)
+
+        self.start_serial_entry.focus_set()
+
+        btn_frame = tk.Frame(container, bg=BG_COLOR)
+        btn_frame.pack(fill="x")
+        self._make_button(btn_frame, "Start Session", self._on_first_start, width=25).pack(side="left")
+        self._make_button(btn_frame, "Exit", self._on_exit, bg="#d9363e", width=12).pack(side="right")
+
+        self.screen1_result = tk.Label(container, text="", wraplength=480,
+                                       justify="left", font=RESULT_FONT, bg=BG_COLOR, fg=ERROR_COLOR)
+        self.screen1_result.pack(pady=(10, 0))
+
+    def _build_existing_session(self, parent: tk.Frame) -> None:
+        container = tk.Frame(parent, bg=BG_COLOR)
+        container.pack(fill="both", expand=True, padx=40, pady=10)
+
+        tk.Label(
+            container, text="Ready to Print",
+            font=LARGE_FONT, bg=BG_COLOR, fg=TEXT_PRIMARY
+        ).pack(anchor="w", pady=(0, 15))
+
+        cards_frame = tk.Frame(container, bg=BG_COLOR)
+        cards_frame.pack(fill="x", pady=(0, 20))
+        
+        next_serial = self.db.get_next_serial()
+        next_random = self.db.get_next_random()
+        
+        serial_card = self._create_card(cards_frame, "Next Serial Number", f"{next_serial:,}")
+        serial_card.pack(side="left", fill="both", expand=True, padx=(0, 10))
+        
+        random_card = self._create_card(cards_frame, "Next Random Number", f"{next_random:,}")
+        random_card.pack(side="right", fill="both", expand=True, padx=(10, 0))
+
+        form_card = tk.Frame(container, bg=CARD_BG, relief="solid", borderwidth=1,
+                             highlightbackground=BORDER_COLOR, highlightthickness=1)
+        form_card.pack(fill="x", pady=(0, 15))
+    
+        inner_form = tk.Frame(form_card, bg=CARD_BG, padx=20, pady=15)
+        inner_form.pack(fill="x")
+        inner_form.columnconfigure(1, weight=1)
+
+        tk.Label(inner_form, text="Number of Labels:", font=LARGE_FONT,
+                 bg=CARD_BG, fg=TEXT_PRIMARY).grid(row=0, column=0, sticky="w", pady=(0, 10))
+        
+        self.qty_entry = tk.Entry(inner_form, width=12, font=LARGE_FONT,
+                                   justify="center", relief="solid",
+                                   highlightbackground=BORDER_COLOR, highlightthickness=1)
+        self.qty_entry.grid(row=0, column=1, sticky="w", padx=(15, 0), pady=(0, 10))
+        self.qty_entry.focus_set()
+
+        btn_frame = tk.Frame(container, bg=BG_COLOR)
+        btn_frame.pack(fill="x", pady=(5, 10))
+        self._make_button(btn_frame, "Start Printing Session", self._on_start_session, width=22).pack(side="left")
+        self._make_button(btn_frame, "Exit", self._on_exit, bg="#d9363e", width=12).pack(side="right")
+
+        self.screen1_result = tk.Label(container, text="", wraplength=480,
+                                       justify="left", font=RESULT_FONT, bg=BG_COLOR, fg=ERROR_COLOR)
+        self.screen1_result.pack(pady=(5, 0))
+
+    def _create_form_field(self, parent, label_text: str, attr_name: str, row: int) -> None:
+        tk.Label(parent, text=label_text, font=LARGE_FONT,
+                 bg=CARD_BG, fg=TEXT_PRIMARY).grid(row=row*2, column=0, sticky="w",
+                                                     pady=(12 if row > 0 else 0, 6))
+        
+        entry = tk.Entry(parent, width=20, font=LARGE_FONT, justify="center",
+                        relief="solid", highlightbackground=BORDER_COLOR, highlightthickness=1)
+        entry.grid(row=row*2+1, column=0, pady=(0, 12), sticky="ew")
+        
+        setattr(self, attr_name, entry)
+        parent.columnconfigure(0, weight=1)
+
     def _validate_qty(self) -> int | None:
         qty_raw = self.qty_entry.get().strip()
         if not qty_raw:
@@ -159,7 +230,6 @@ class SerialExporterApp:
                 return None
         return qty
 
-    # ------------------------------------------------------------------
     def _on_first_start(self) -> None:
         raw_ser = self.start_serial_entry.get().strip()
         if not raw_ser:
@@ -205,7 +275,6 @@ class SerialExporterApp:
             return
         self._do_session(qty)
 
-    # ------------------------------------------------------------------
     def _do_session(self, qty: int) -> None:
         try:
             session = self.db.reserve_range(qty)
@@ -228,82 +297,125 @@ class SerialExporterApp:
             )
             return
 
-        try:
-            from zebra_integration import open_zebra_label, zebra_keyboard_sequence
-            from config import ZEBRA_LABEL_FILE
-            from pathlib import Path
-            label_path = Path.cwd() / ZEBRA_LABEL_FILE
-            if label_path.exists():
-                self._zebra_process = open_zebra_label(str(label_path))
-                zebra_keyboard_sequence()
-        except Exception:
-            pass
-
         self._current_session = session
         self._current_session["filepath"] = str(filepath)
         self._show_screen2()
 
-    # ------------------------------------------------------------------
-    # Screen 2 — Confirm
-    # ------------------------------------------------------------------
     def _build_screen2(self) -> tk.Frame:
-        frame = tk.Frame(self.root, padx=30, pady=25, bg=BG_COLOR)
+        frame = tk.Frame(self.root, bg=BG_COLOR)
         s = self._current_session
         if s is None:
             return frame
 
-        tk.Label(frame, text="Print Confirmation", font=TITLE_FONT, bg=BG_COLOR).grid(
-            row=0, column=0, columnspan=2, pady=(0, 15)
-        )
+        header_frame = tk.Frame(frame, bg=BG_COLOR)
+        header_frame.pack(fill="x", padx=30, pady=(25, 20))
+        
+        tk.Label(
+            header_frame, text="Print Confirmation",
+            font=TITLE_FONT, bg=BG_COLOR, fg=TEXT_PRIMARY
+        ).pack(side="left")
 
-        info = (
-            f"Session #{s['session_id']} — reserved serials "
+        container = tk.Frame(frame, bg=BG_COLOR)
+        container.pack(fill="both", expand=True, padx=30, pady=10)
+
+        info_card = tk.Frame(container, bg=CARD_BG, relief="solid", borderwidth=1,
+                            highlightbackground=BORDER_COLOR, highlightthickness=1)
+        info_card.pack(fill="x", pady=(0, 15))
+        
+        inner_info = tk.Frame(info_card, bg=CARD_BG, padx=20, pady=15)
+        inner_info.pack(fill="x")
+
+        info_text = (
+            f"Session #{s['session_id']} — Reserved serials "
             f"{s['serial_range_start']:,} to {s['serial_range_end']:,} "
             f"({s['quantity_requested']:,} labels)"
         )
-        tk.Label(frame, text=info, wraplength=480, justify="left", font=LARGE_FONT, bg=BG_COLOR, fg="#333333").grid(
-            row=1, column=0, columnspan=2, pady=(0, 10)
-        )
+        tk.Label(
+            inner_info, text=info_text, font=LARGE_FONT,
+            bg=CARD_BG, fg=TEXT_PRIMARY
+        ).pack(anchor="w")
+
+        banner_frame = tk.Frame(container, bg=PRIMARY_LIGHT, relief="solid", borderwidth=1)
+        banner_frame.pack(fill="x", pady=(0, 20))
+        
+        inner_banner = tk.Frame(banner_frame, bg=PRIMARY_LIGHT, padx=15, pady=12)
+        inner_banner.pack(fill="x")
+        
+        tk.Label(
+            inner_banner,
+            text="Open ZebraDesigner Pro 2, open 'AutomatedZebraPrinter.lbl', and print from 'print_queue.csv'. Then come back here to confirm.",
+            font=LARGE_FONT, bg=PRIMARY_LIGHT, fg=PRIMARY_COLOR, justify="left",
+            wraplength=500
+        ).pack(anchor="w", fill="x")
+
+        btn_frame = tk.Frame(container, bg=BG_COLOR)
+        btn_frame.pack(fill="x", pady=(0, 20))
+        btn_frame.columnconfigure(0, weight=1)
+        btn_frame.columnconfigure(1, weight=1)
+        btn_frame.columnconfigure(2, weight=1)
+        
+        tk.Button(btn_frame, text="Complete", font=BTN_FONT, bg="#2e7d32", fg="white",
+                  padx=8, pady=5, cursor="hand2", command=self._on_complete,
+                  activebackground=PRIMARY_DARK, activeforeground="white",
+                  relief="flat", borderwidth=0).grid(row=0, column=0, padx=(0, 4), sticky="ew")
+        tk.Button(btn_frame, text="Incomplete", font=BTN_FONT, bg="#e6a817", fg="white",
+                  padx=8, pady=5, cursor="hand2", command=self._on_show_incomplete,
+                  activebackground=PRIMARY_DARK, activeforeground="white",
+                  relief="flat", borderwidth=0).grid(row=0, column=1, padx=4, sticky="ew")
+        tk.Button(btn_frame, text="Cancel", font=BTN_FONT, bg="#d9363e", fg="white",
+                  padx=8, pady=5, cursor="hand2", command=self._on_void,
+                  activebackground=PRIMARY_DARK, activeforeground="white",
+                  relief="flat", borderwidth=0).grid(row=0, column=2, padx=(4, 0), sticky="ew")
+
+        self._incomplete_frame = tk.Frame(container, bg=CARD_BG, relief="solid", borderwidth=1,
+                                         highlightbackground=BORDER_COLOR, highlightthickness=1)
+        
+        inner_recovery = tk.Frame(self._incomplete_frame, bg=CARD_BG, padx=20, pady=15)
+        inner_recovery.pack(fill="x")
+        inner_recovery.columnconfigure(1, weight=1)
 
         tk.Label(
-            frame, text="ZebraDesigner Pro 2 has been opened.\nPrint from print_queue.csv, then come back here.",
-            wraplength=480, justify="left", font=RESULT_FONT, bg=BG_COLOR, fg="#0066cc"
-        ).grid(row=2, column=0, columnspan=2, pady=(0, 15))
-
-        btn_frame = tk.Frame(frame, bg=BG_COLOR)
-        btn_frame.grid(row=3, column=0, columnspan=2, pady=(5, 15))
-        self._make_button(btn_frame, "Complete", self._on_complete, bg="#008000").pack(side="left", padx=(0, 10))
-        self._make_button(btn_frame, "Incomplete", self._on_show_incomplete, bg="#cc8800").pack(side="left", padx=(0, 10))
-        self._make_button(btn_frame, "Cancel Session", self._on_void, bg="#cc3300").pack(side="left")
-
-        self._incomplete_frame = tk.Frame(frame, bg=BG_COLOR)
-        self._incomplete_frame.grid(row=4, column=0, columnspan=2, pady=(0, 10))
-        tk.Label(
-            self._incomplete_frame, text="Last serial number that printed successfully:",
-            wraplength=480, justify="left", font=LARGE_FONT, bg=BG_COLOR
+            inner_recovery, text="Last serial number that printed successfully:",
+            font=LARGE_FONT, bg=CARD_BG, fg=TEXT_PRIMARY
         ).grid(row=0, column=0, sticky="w", pady=(0, 10))
-        self.confirm_entry = tk.Entry(self._incomplete_frame, width=15, font=LARGE_FONT, justify="center")
-        self.confirm_entry.grid(row=0, column=1, sticky="ew", pady=(0, 10))
-        self._make_button(self._incomplete_frame, "Confirm Incomplete", self._on_confirm_incomplete, bg="#008000").grid(
-            row=1, column=0, columnspan=2, pady=(5, 5)
+
+        self.confirm_entry = tk.Entry(inner_recovery, width=15, font=LARGE_FONT, justify="center",
+                                     relief="solid", highlightbackground=BORDER_COLOR, highlightthickness=1)
+        self.confirm_entry.grid(row=0, column=1, sticky="w", padx=(15, 0), pady=(0, 10))
+
+        btn_confirm_frame = tk.Frame(inner_recovery, bg=CARD_BG)
+        btn_confirm_frame.grid(row=1, column=0, columnspan=2, pady=(10, 0))
+        confirm_btn = tk.Button(
+            btn_confirm_frame, text="Confirm Incomplete",
+            font=BTN_FONT, bg="#2e7d32", fg="white",
+            padx=30, pady=12, cursor="hand2", command=self._on_confirm_incomplete,
+            activebackground=PRIMARY_DARK, activeforeground="white",
+            relief="flat", borderwidth=0, width=25
         )
+        confirm_btn.pack()
 
-        self.screen2_result = tk.Label(frame, text="", wraplength=480, justify="left", font=RESULT_FONT, bg=BG_COLOR)
-        self.screen2_result.grid(row=5, column=0, columnspan=2, pady=(0, 5))
-        self._incomplete_frame.grid_remove()
+        self.screen2_result = tk.Label(container, text="", wraplength=480,
+                                       justify="left", font=RESULT_FONT, bg=BG_COLOR, fg=ERROR_COLOR)
+        self.screen2_result.pack(pady=(5, 0))
 
-        frame.columnconfigure(1, weight=1)
         return frame
 
     def _on_complete(self) -> None:
+        self._hide_incomplete()
         s = self._current_session
         if s is None:
             return
         self._do_confirm(s["serial_range_end"])
 
     def _on_show_incomplete(self) -> None:
-        self._incomplete_frame.grid()
-        self.confirm_entry.focus_set()
+        if self._incomplete_frame.winfo_ismapped():
+            self._incomplete_frame.pack_forget()
+        else:
+            self._incomplete_frame.pack(fill="x", pady=(0, 15))
+            self.confirm_entry.focus_set()
+
+    def _hide_incomplete(self) -> None:
+        self._incomplete_frame.pack_forget()
 
     def _on_confirm_incomplete(self) -> None:
         s = self._current_session
@@ -320,7 +432,6 @@ class SerialExporterApp:
             return
         self._do_confirm(last_good)
 
-    # ------------------------------------------------------------------
     def _do_confirm(self, last_good: int) -> None:
         s = self._current_session
         if s is None:
@@ -343,21 +454,15 @@ class SerialExporterApp:
         status_text = "confirmed (all labels printed)" if last_good >= end else f"partial (last good: {last_good:,})"
         self.screen2_result.config(text=f"Session #{s['session_id']} {status_text}.", fg="green")
 
-        from zebra_integration import close_zebra
-        close_zebra()
-        self._zebra_process = None
         self.root.after(1500, self._return_to_screen1)
 
-    # ------------------------------------------------------------------
     def _on_void(self) -> None:
         s = self._current_session
         if s is None:
             return
         proceed = messagebox.askyesno(
             "Cancel Session",
-            f"Mark session #{s['session_id']} as cancelled?\n\n"
-            f"The reserved serials {s['serial_range_start']:,} to {s['serial_range_end']:,} will be skipped "
-            f"(never reused — they become gaps in the sequence).",
+            f"Mark session #{s['session_id']} as cancelled?",
         )
         if not proceed:
             return
@@ -368,16 +473,9 @@ class SerialExporterApp:
             return
 
         self.screen2_result.config(text=f"Session #{s['session_id']} cancelled.", fg="orange")
-        from zebra_integration import close_zebra
-        close_zebra()
-        self._zebra_process = None
         self.root.after(1500, self._return_to_screen1)
 
-    # ------------------------------------------------------------------
     def _on_exit(self) -> None:
-        from zebra_integration import close_zebra
-        close_zebra()
-        self._zebra_process = None
         self.root.destroy()
 
     def _return_to_screen1(self) -> None:
