@@ -1,1 +1,13 @@
+.env
 documentation/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+/serial_exporter/__pycache__
