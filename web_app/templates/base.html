@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Serial Tracker{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            sidebar: '#1a1a2e',
+            'sidebar-hover': '#16213e',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .nav-active { background: rgba(255,255,255,0.12); }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+  </style>
+</head>
+<body class="bg-gray-50 h-screen flex overflow-hidden text-[13px]">
+
+  <!-- Sidebar -->
+  <aside class="w-56 shrink-0 bg-[#1a1a2e] flex flex-col h-screen text-gray-300">
+
+    <!-- Logo -->
+    <div class="px-4 py-4 flex items-center gap-2.5 border-b border-white/10">
+      <div class="w-7 h-7 bg-blue-500 rounded-md flex items-center justify-center">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+        </svg>
+      </div>
+      <span class="font-semibold text-white text-sm">Serial Tracker</span>
+    </div>
+
+    
+    <!-- Nav -->
+    <nav class="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
+
+      <p class="px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500">Views</p>
+
+       <a href="/" class="flex items-center gap-2.5 px-2 py-1.5 rounded-md text-gray-300 hover:bg-white/10 transition-colors {% if request.url.path == '/' %}nav-active text-white{% endif %}">
+        <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
+        </svg>
+        Dashboard
+      </a>
+
+
+      <a href="/serials" class="flex items-center gap-2.5 px-2 py-1.5 rounded-md text-gray-300 hover:bg-white/10 transition-colors {% if request.url.path == '/serials' %}nav-active text-white{% endif %}">
+        <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 6h18M3 14h18M3 18h18"/>
+        </svg>
+        Serial Numbers
+      </a>
+
+      <a href="/sessions" class="flex items-center gap-2.5 px-2 py-1.5 rounded-md text-gray-300 hover:bg-white/10 transition-colors {% if request.url.path.startswith('/sessions') %}nav-active text-white{% endif %}">
+        <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+        Print Sessions
+      </a>
+
+    </nav>
+
+    <!-- Footer -->
+    <div class="px-4 py-3 border-t border-white/10">
+      <p class="text-[11px] text-gray-500">serial_tracker · MySQL</p>
+    </div>
+
+  </aside>
+
+  <!-- Main -->
+  <div class="flex-1 flex flex-col h-screen overflow-hidden">
+    {% block content %}{% endblock %}
+  </div>
+
+</body>
+</html>
