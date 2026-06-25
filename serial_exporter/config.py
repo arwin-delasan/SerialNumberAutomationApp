@@ -4,6 +4,14 @@ config
 Centralized configuration, constants, and DB connection settings.
 """
 
+import os
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # ---------------------------------------------------------------------------
 # CSV / export constants
 # ---------------------------------------------------------------------------
@@ -43,22 +51,13 @@ CARD_TITLE_FONT = ("Segoe UI", 11, "bold")
 DISPLAY_FONT = ("Segoe UI", 24, "bold")
 
 # ---------------------------------------------------------------------------
-# Database configurations
+# Database configuration
 # ---------------------------------------------------------------------------
-# Primary / company DB — update these values when moving to a shared server
-COMPANY_MYSQL_CONFIG = {
-    "host": "localhost",  # Replace with company DB host/IP
-    "user": "root",  # Replace with company DB user
-    "password": "",  # Replace with company DB password
-    "database": "serial_tracker",
-    "port": 3306,
-}
-
-# Fallback / local Laragon DB
-LOCAL_MYSQL_CONFIG = {
-    "host": "localhost",
-    "user": "root",
-    "password": "",
-    "database": "serial_tracker",
-    "port": 3306,
+# Reads from environment variables with fallback defaults
+MYSQL_CONFIG = {
+    "host": os.getenv("DB_HOST", "localhost"),
+    "user": os.getenv("DB_USER", "root"),
+    "password": os.getenv("DB_PASSWORD", ""),
+    "database": os.getenv("DB_NAME", "serial_tracker"),
+    "port": int(os.getenv("DB_PORT", "3306")),
 }
