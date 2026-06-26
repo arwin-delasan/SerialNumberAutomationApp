@@ -76,6 +76,13 @@ class DatabaseManager:
                 FOREIGN KEY (session_id) REFERENCES print_sessions(session_id)
             ) ENGINE=InnoDB;
         """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS print_queue (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                SerialNumber INT NOT NULL,
+                RandomNumber INT NOT NULL
+            ) ENGINE=InnoDB;
+        """)
         # Migrate existing tables that were created before this column existed
         try:
             cursor.execute("""
@@ -159,6 +166,12 @@ class DatabaseManager:
             (serial_start, serial_end, random_start, random_end, qty),
         )
         session_id = cursor.lastrowid
+
+        cursor.execute("TRUNCATE TABLE print_queue")
+        cursor.executemany(
+            "INSERT INTO print_queue (SerialNumber, RandomNumber) VALUES (%s, %s)",
+            [(serial_start + i * SERIAL_STEP, random_start + i * RANDOM_STEP) for i in range(qty)],
+        )
         conn.commit()
 
         return {
