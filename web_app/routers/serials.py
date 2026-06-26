@@ -2,15 +2,14 @@ import os
 import csv
 import io
 import math
+import sys
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from web_app.dependencies import get_db
 import web_app.queries as queries
 
-sys_path_dir = os.path.join(os.path.dirname(__file__), "..", "..", "serial_exporter")
-import sys
-sys.path.insert(0, sys_path_dir)
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "serial_exporter"))
 from config import SERIAL_COLUMN_HEADER, RANDOM_COLUMN_HEADER
 
 router = APIRouter()
@@ -46,6 +45,18 @@ def serials_view(
         "min_serial": min_serial,
         "max_serial": max_serial,
     })
+
+
+@router.post("/serials/{row_id}/toggle-status")
+def toggle_serial_status(row_id: int, request: Request, db=Depends(get_db)):
+    with db.cursor(dictionary=True) as cur:
+        cur.execute("SELECT status FROM session_rows WHERE row_id = %s", (row_id,))
+        row = cur.fetchone()
+    if row:
+        new_status = "used" if row["status"] == "unused" else "unused"
+        queries.update_serial_status(db, row_id, new_status)
+    back = request.query_params.get("back", "/serials")
+    return RedirectResponse(back if back.startswith("/") else "/serials", status_code=303)
 
 
 @router.get("/serials/export")

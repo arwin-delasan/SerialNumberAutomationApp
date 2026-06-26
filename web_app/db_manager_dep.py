@@ -9,7 +9,6 @@ from config import MYSQL_CONFIG
 
 def get_db_manager():
     db = DatabaseManager(MYSQL_CONFIG)
-    db.init_db()
     try:
         yield db
     finally:

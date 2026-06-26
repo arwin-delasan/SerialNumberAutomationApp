@@ -32,8 +32,17 @@
     </div>
     {% endif %}
 
+    {% if age_minutes >= timeout_minutes - 5 %}
+    <div class="bg-orange-50 border border-orange-200 text-orange-800 text-[12px] rounded-lg px-4 py-3 flex items-start gap-2">
+      <svg class="w-4 h-4 shrink-0 mt-0.5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <span>This session has been open for <strong>{{ age_minutes }} min</strong> and will be auto-cancelled at {{ timeout_minutes }} min. Complete or cancel it soon.</span>
+    </div>
+    {% endif %}
+
     <!-- Session info cards -->
-    <div class="grid grid-cols-3 gap-3">
+    <div class="grid grid-cols-4 gap-3">
       <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
         <p class="text-[11px] text-gray-400 font-medium mb-1">Serials</p>
         <p class="text-sm font-mono font-bold text-gray-900">{{ "{:,}".format(session.serial_range_start) }}</p>
@@ -46,6 +55,10 @@
       <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
         <p class="text-[11px] text-gray-400 font-medium mb-1">Session ID</p>
         <p class="text-2xl font-mono font-bold text-gray-900">#{{ session.session_id }}</p>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <p class="text-[11px] text-gray-400 font-medium mb-1">Open for</p>
+        <p class="text-2xl font-mono font-bold {% if age_minutes >= timeout_minutes - 5 %}text-orange-500{% else %}text-gray-900{% endif %}">{{ age_minutes }}m</p>
       </div>
     </div>
 

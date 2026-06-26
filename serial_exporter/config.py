@@ -19,6 +19,7 @@ SERIAL_COLUMN_HEADER = "SerialNumber"
 RANDOM_COLUMN_HEADER = "RandomNumber"
 EXPORT_FILENAME = "print_queue.csv"
 QUANTITY_WARN_THRESHOLD = 10000
+SESSION_TIMEOUT_MINUTES = 60  # issued sessions older than this are auto-voided
 
 # Seed step sizes
 SERIAL_STEP = 1

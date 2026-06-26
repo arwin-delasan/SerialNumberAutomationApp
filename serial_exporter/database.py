@@ -116,10 +116,11 @@ class DatabaseManager:
         conn.commit()
 
     # ------------------------------------------------------------------
-    def _read_counters(self, cursor) -> tuple[int, int]:
-        cursor.execute(
-            "SELECT last_issued_serial, last_issued_random FROM serial_counter WHERE id = 1"
-        )
+    def _read_counters(self, cursor, lock: bool = False) -> tuple[int, int]:
+        sql = "SELECT last_issued_serial, last_issued_random FROM serial_counter WHERE id = 1"
+        if lock:
+            sql += " FOR UPDATE"
+        cursor.execute(sql)
         row = cursor.fetchone()
         if row is None:
             raise RuntimeError("serial_counter row missing — seed it first")
@@ -149,30 +150,44 @@ class DatabaseManager:
         conn = self.connect()
         cursor = conn.cursor(dictionary=True)
 
-        last_serial, last_random = self._read_counters(cursor)
+        try:
+            cursor.execute("SELECT session_id, status FROM print_sessions ORDER BY session_id DESC LIMIT 1")
+            last = cursor.fetchone()
+            if last and last["status"] == "issued":
+                raise RuntimeError("A print session is already in progress")
 
-        serial_start = last_serial + SERIAL_STEP
-        serial_end = serial_start + qty - 1
+            last_serial, last_random = self._read_counters(cursor, lock=True)
 
-        random_start = last_random + RANDOM_STEP
-        random_end = random_start + (qty - 1) * RANDOM_STEP
+            serial_start = last_serial + SERIAL_STEP
+            serial_end = serial_start + qty - 1
 
-        cursor.execute(
-            """INSERT INTO print_sessions
-               (serial_range_start, serial_range_end,
-                random_range_start, random_range_end,
-                quantity_requested, status)
-               VALUES (%s, %s, %s, %s, %s, 'issued')""",
-            (serial_start, serial_end, random_start, random_end, qty),
-        )
-        session_id = cursor.lastrowid
+            random_start = last_random + RANDOM_STEP
+            random_end = random_start + (qty - 1) * RANDOM_STEP
 
-        cursor.execute("TRUNCATE TABLE print_queue")
-        cursor.executemany(
-            "INSERT INTO print_queue (SerialNumber, RandomNumber) VALUES (%s, %s)",
-            [(serial_start + i * SERIAL_STEP, random_start + i * RANDOM_STEP) for i in range(qty)],
-        )
-        conn.commit()
+            cursor.execute(
+                """INSERT INTO print_sessions
+                   (serial_range_start, serial_range_end,
+                    random_range_start, random_range_end,
+                    quantity_requested, status)
+                   VALUES (%s, %s, %s, %s, %s, 'issued')""",
+                (serial_start, serial_end, random_start, random_end, qty),
+            )
+            session_id = cursor.lastrowid
+
+            cursor.execute(
+                "UPDATE serial_counter SET last_issued_serial = %s, last_issued_random = %s WHERE id = 1",
+                (serial_end, random_end),
+            )
+
+            cursor.execute("DELETE FROM print_queue")
+            cursor.executemany(
+                "INSERT INTO print_queue (SerialNumber, RandomNumber) VALUES (%s, %s)",
+                [(serial_start + i * SERIAL_STEP, random_start + i * RANDOM_STEP) for i in range(qty)],
+            )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
 
         return {
             "session_id": session_id,
@@ -185,7 +200,7 @@ class DatabaseManager:
 
     # ------------------------------------------------------------------
     def confirm_session(self, session_id: int, last_good_serial: int) -> bool:
-        from config import RANDOM_STEP
+        from config import RANDOM_STEP, SERIAL_STEP
 
         conn = self.connect()
         cursor = conn.cursor(dictionary=True)
@@ -210,15 +225,19 @@ class DatabaseManager:
             (status, last_good_serial, session_id),
         )
 
-        count = last_good_serial - row["serial_range_start"] + 1
-        new_serial = last_good_serial
-        new_random = row["random_range_start"] + (count - 1) * RANDOM_STEP
+        # For partial: roll counter back to the last actually-printed serial so
+        # the unprinted tail of the range is reused by the next session.
+        if status == "partial":
+            last_good_random = (
+                row["random_range_start"]
+                + (last_good_serial - row["serial_range_start"]) * RANDOM_STEP
+            )
+            cursor.execute(
+                "UPDATE serial_counter SET last_issued_serial = %s, last_issued_random = %s WHERE id = 1",
+                (last_good_serial, last_good_random),
+            )
 
-        cursor.execute(
-            "UPDATE serial_counter SET last_issued_serial = %s, last_issued_random = %s "
-            "WHERE id = 1",
-            (new_serial, new_random),
-        )
+        count = last_good_serial - row["serial_range_start"] + 1
 
         for i in range(count):
             cursor.execute(
@@ -236,13 +255,30 @@ class DatabaseManager:
 
     # ------------------------------------------------------------------
     def void_session(self, session_id: int) -> bool:
+        from config import SERIAL_STEP, RANDOM_STEP
+
         conn = self.connect()
         cursor = conn.cursor(dictionary=True)
+        # Fetch range before voiding so we can roll the counter back
+        cursor.execute(
+            "SELECT serial_range_start, random_range_start "
+            "FROM print_sessions WHERE session_id = %s AND status = 'issued'",
+            (session_id,),
+        )
+        row = cursor.fetchone()
+        if not row:
+            return False
+
         cursor.execute(
             """UPDATE print_sessions
                SET status = 'voided', confirmed_at = CURRENT_TIMESTAMP
-               WHERE session_id = %s AND status = 'issued'""",
+               WHERE session_id = %s""",
             (session_id,),
         )
+        # Roll counter back to just before the reserved range so it's reused
+        cursor.execute(
+            "UPDATE serial_counter SET last_issued_serial = %s, last_issued_random = %s WHERE id = 1",
+            (row["serial_range_start"] - SERIAL_STEP, row["random_range_start"] - RANDOM_STEP),
+        )
         conn.commit()
-        return cursor.rowcount > 0
+        return True

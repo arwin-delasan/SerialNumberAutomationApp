@@ -2,13 +2,14 @@ import os
 import sys
 import csv
 import io
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, Request, Form
 from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "serial_exporter"))
-from config import SERIAL_STEP, RANDOM_STEP, QUANTITY_WARN_THRESHOLD, SERIAL_COLUMN_HEADER, RANDOM_COLUMN_HEADER
+from config import SERIAL_STEP, RANDOM_STEP, QUANTITY_WARN_THRESHOLD, SERIAL_COLUMN_HEADER, RANDOM_COLUMN_HEADER, SESSION_TIMEOUT_MINUTES
 from csv_exporter import write_csv
 import web_app.queries as queries
 from web_app.db_manager_dep import get_db_manager
@@ -20,8 +21,20 @@ templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), ".
 CSV_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "serial_exporter")
 
 
-def _build_csv_path(session_id: int) -> str:
-    return os.path.join(CSV_DIR, f"print_queue.csv")
+def _check_active_session(db, conn):
+    """Return active session if within timeout, auto-void and return None if expired."""
+    active = queries.get_active_session(conn)
+    if not active:
+        return None
+    created_at = active["created_at"]
+    age_minutes = (datetime.now() - created_at).total_seconds() / 60
+    if age_minutes >= SESSION_TIMEOUT_MINUTES:
+        db.void_session(active["session_id"])
+        return None
+    return active
+
+
+CSV_PATH = os.path.join(CSV_DIR, "print_queue.csv")
 
 
 def _generate_csv(session: dict) -> tuple[list[int], list[int]]:
@@ -38,6 +51,11 @@ def _generate_csv(session: dict) -> tuple[list[int], list[int]]:
 # ---------------------------------------------------------------------------
 @router.get("")
 def print_start(request: Request, error: str = "", warn: str = "", db=Depends(get_db_manager)):
+    conn = db.connect()
+    active = _check_active_session(db, conn)
+    if active:
+        return RedirectResponse(f"/print/confirm/{active['session_id']}", status_code=303)
+
     seeded = db.has_counter()
     next_serial = db.get_next_serial() if seeded else None
     next_random = db.get_next_random() if seeded else None
@@ -61,6 +79,11 @@ def print_do_start(
     start_random: int = Form(None),
     db=Depends(get_db_manager),
 ):
+    conn = db.connect()
+    active = _check_active_session(db, conn)
+    if active:
+        return RedirectResponse(f"/print/confirm/{active['session_id']}", status_code=303)
+
     if qty < 1:
         return RedirectResponse("/print?error=Quantity+must+be+at+least+1", status_code=303)
 
@@ -71,13 +94,24 @@ def print_do_start(
             return RedirectResponse("/print?error=Starting+values+must+be+at+least+1", status_code=303)
         db.seed_counters(start_serial, start_random)
 
-    session = db.reserve_range(qty)
-    serials, randoms = _generate_csv(session)
-
     try:
-        write_csv(serials, randoms, _build_csv_path(session["session_id"]))
+        session = db.reserve_range(qty)
+    except RuntimeError:
+        # Another session snuck in between the check and the reserve — redirect to it
+        conn = db.connect()
+        active = queries.get_active_session(conn)
+        if active:
+            return RedirectResponse(f"/print/confirm/{active['session_id']}", status_code=303)
+        return RedirectResponse("/print", status_code=303)
+
+    serials, randoms = _generate_csv(session)
+    try:
+        write_csv(serials, randoms, CSV_PATH)
     except Exception as e:
-        pass  # CSV write failure is non-blocking; user can still confirm/void
+        return RedirectResponse(
+            f"/print/confirm/{session['session_id']}?error=CSV+write+failed:+{e}",
+            status_code=303,
+        )
 
     return RedirectResponse(f"/print/confirm/{session['session_id']}", status_code=303)
 
@@ -91,9 +125,12 @@ def print_confirm(session_id: int, request: Request, error: str = "", db=Depends
     session = queries.get_session(conn, session_id)
     if session is None or session["status"] != "issued":
         return RedirectResponse("/print", status_code=303)
+    age_minutes = int((datetime.now() - session["created_at"]).total_seconds() / 60)
     return templates.TemplateResponse(request, "print_confirm.html", {
         "session": session,
         "error": error,
+        "age_minutes": age_minutes,
+        "timeout_minutes": SESSION_TIMEOUT_MINUTES,
     })
 
 

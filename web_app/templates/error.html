@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ code }} · Serial Tracker{% endblock %}
+
+{% block content %}
+<div class="flex-1 flex items-center justify-center">
+  <div class="text-center space-y-2">
+    <p class="text-5xl font-mono font-bold text-gray-300">{{ code }}</p>
+    <p class="text-sm text-gray-500">{{ message }}</p>
+    <a href="/" class="inline-block mt-4 text-[12px] text-blue-500 hover:underline">← Back to dashboard</a>
+  </div>
+</div>
+{% endblock %}

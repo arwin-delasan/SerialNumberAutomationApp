@@ -105,11 +105,13 @@
           <a href="/sessions/{{ row.session_id }}" class="hover:text-blue-600 hover:underline">#{{ row.session_id }}</a>
         </td>
         <td class="px-4 py-2">
-          {% if row.serial_status == 'used' %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-100 text-green-700">Used</span>
-          {% else %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 text-gray-500">Unused</span>
-          {% endif %}
+          <form method="POST" action="/serials/{{ row.row_id }}/toggle-status?back=/serials?sort={{ sort }}&page={{ page }}" class="inline">
+            <button type="submit"
+                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer
+                           {% if row.serial_status == 'used' %}bg-green-100 text-green-700 hover:bg-green-200{% else %}bg-gray-100 text-gray-500 hover:bg-gray-200{% endif %}">
+              {{ 'Used' if row.serial_status == 'used' else 'Unused' }}
+            </button>
+          </form>
         </td>
       </tr>
       {% endfor %}

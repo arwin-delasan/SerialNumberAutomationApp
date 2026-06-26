@@ -40,6 +40,12 @@ def list_sessions(conn, page: int, page_size: int):
     return rows, total
 
 
+def get_active_session(conn):
+    with conn.cursor(dictionary=True) as cur:
+        cur.execute("SELECT * FROM print_sessions WHERE status = 'issued' ORDER BY session_id DESC LIMIT 1")
+        return cur.fetchone()
+
+
 def get_session(conn, session_id: int):
     with conn.cursor(dictionary=True) as cur:
         cur.execute("SELECT * FROM print_sessions WHERE session_id = %s", (session_id,))
@@ -67,12 +73,22 @@ def get_serial_bounds(conn):
         return cur.fetchone()
 
 
+def update_serial_status(conn, row_id: int, status: str) -> bool:
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE session_rows SET status = %s WHERE row_id = %s",
+            (status, row_id),
+        )
+    conn.commit()
+    return cur.rowcount > 0
+
+
 def list_all_serials(conn, page: int, page_size: int, sort: str = "desc"):
     offset = (page - 1) * page_size
     order = "DESC" if sort == "desc" else "ASC"
     with conn.cursor(dictionary=True) as cur:
         cur.execute(f"""
-            SELECT DISTINCT sr.serial_number, sr.random_number, sr.session_id, sr.status AS serial_status
+            SELECT sr.row_id, sr.serial_number, sr.random_number, sr.session_id, sr.status AS serial_status
             FROM session_rows sr
             JOIN print_sessions ps ON sr.session_id = ps.session_id
             WHERE ps.status IN ('confirmed', 'partial')
@@ -81,7 +97,7 @@ def list_all_serials(conn, page: int, page_size: int, sort: str = "desc"):
         """, (page_size, offset))
         rows = cur.fetchall()
         cur.execute("""
-            SELECT COUNT(DISTINCT sr.serial_number) AS total
+            SELECT COUNT(*) AS total
             FROM session_rows sr
             JOIN print_sessions ps ON sr.session_id = ps.session_id
             WHERE ps.status IN ('confirmed', 'partial')
