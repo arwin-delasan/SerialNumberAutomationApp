@@ -148,6 +148,8 @@ def print_do_start(
 
     if qty < 1:
         return RedirectResponse("/print?error=Quantity+must+be+at+least+1", status_code=303)
+    if qty > 20_000:
+        return RedirectResponse("/print?error=Quantity+cannot+exceed+20,000+labels+per+session", status_code=303)
 
     if not db.has_counter():
         if not start_serial or not start_random:

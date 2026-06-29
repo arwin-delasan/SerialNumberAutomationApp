@@ -216,7 +216,10 @@ class DatabaseManager:
         cursor = conn.cursor(dictionary=True)
 
         try:
-            cursor.execute("SELECT session_id, status FROM print_sessions ORDER BY session_id DESC LIMIT 1")
+            cursor.execute(
+                "SELECT session_id, status FROM print_sessions "
+                "ORDER BY session_id DESC LIMIT 1 FOR UPDATE"
+            )
             last = cursor.fetchone()
             if last and last["status"] == "issued":
                 raise RuntimeError("A print session is already in progress")

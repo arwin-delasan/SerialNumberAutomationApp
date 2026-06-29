@@ -30,6 +30,8 @@ def export_download(
 ):
     if start_serial > end_serial:
         return RedirectResponse(url="/export?error=Start+serial+must+be+less+than+or+equal+to+end+serial")
+    if (end_serial - start_serial) > 50_000:
+        return RedirectResponse(url="/export?error=Export+range+cannot+exceed+50,000+serials+at+once")
 
     def csv_stream():
         buf = io.StringIO()

@@ -1,8 +1,10 @@
+import logging
 import os
 import sys
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 from web_app.routers import dashboard, sessions, export, serials, print_session
@@ -16,6 +18,12 @@ from config import SESSION_SECRET_KEY
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if SESSION_SECRET_KEY == "change-me-in-production-32chars!":
+        import warnings
+        warnings.warn(
+            "SESSION_SECRET_KEY is using the default weak value — set it in .env before deploying!",
+            stacklevel=2,
+        )
     db = DatabaseManager(MYSQL_CONFIG)
     db.init_db()
     seed_default_admin(db)
@@ -25,7 +33,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Serial Management", lifespan=lifespan)
 
-app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET_KEY)
+app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static")), name="static")
+app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET_KEY, same_site="lax")
 
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
 
@@ -64,6 +73,7 @@ async def not_found(request: Request, exc):
 
 @app.exception_handler(500)
 async def server_error(request: Request, exc):
+    logging.exception("Unhandled 500 on %s: %s", request.url.path, exc)
     return templates.TemplateResponse(
         request, "error.html",
         {"code": 500, "message": "Internal server error", "user": None},

@@ -4,7 +4,7 @@ import io
 import math
 import sys
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import StreamingResponse, RedirectResponse
+from fastapi.responses import StreamingResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from web_app.auth import require_role
 from web_app.dependencies import get_db
@@ -53,18 +53,17 @@ def serials_view(
 @router.post("/serials/{row_id}/toggle-status")
 def toggle_serial_status(
     row_id: int,
-    request: Request,
     db=Depends(get_db),
     user=Depends(require_role("view_actions")),
 ):
     with db.cursor(dictionary=True) as cur:
         cur.execute("SELECT status FROM session_rows WHERE row_id = %s", (row_id,))
         row = cur.fetchone()
-    if row:
-        new_status = "used" if row["status"] == "unused" else "unused"
-        queries.update_serial_status(db, row_id, new_status)
-    back = request.query_params.get("back", "/serials")
-    return RedirectResponse(back if back.startswith("/") else "/serials", status_code=303)
+    if not row:
+        return JSONResponse({"ok": False, "error": "Row not found"}, status_code=404)
+    new_status = "used" if row["status"] == "unused" else "unused"
+    queries.update_serial_status(db, row_id, new_status)
+    return JSONResponse({"ok": True, "status": new_status})
 
 
 @router.get("/serials/export")
@@ -74,6 +73,9 @@ def serials_export(
     db=Depends(get_db),
     user=Depends(require_role("view_only")),
 ):
+    if (end_serial - start_serial) > 50_000:
+        return RedirectResponse("/serials?error=Export+range+cannot+exceed+50,000+serials+at+once", status_code=303)
+
     def csv_stream():
         buf = io.StringIO()
         writer = csv.writer(buf)

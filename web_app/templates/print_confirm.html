@@ -91,7 +91,7 @@
 
         <!-- Complete -->
         <form method="POST" action="/print/complete/{{ session.session_id }}">
-          <button type="submit"
+          <button id="completeBtn" type="submit"
                   class="w-full flex items-center justify-between bg-green-600 hover:bg-green-700 text-white text-[13px] font-semibold px-4 py-3 rounded-lg transition-colors">
             <span class="flex items-center gap-2">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -105,7 +105,7 @@
 
         <!-- Incomplete -->
         <div class="border border-yellow-200 rounded-lg overflow-hidden">
-          <button type="button" onclick="toggleIncomplete()"
+          <button id="incompleteToggleBtn" type="button" onclick="toggleIncomplete()"
                   class="w-full flex items-center justify-between bg-yellow-50 hover:bg-yellow-100 text-yellow-800 text-[13px] font-semibold px-4 py-3 transition-colors">
             <span class="flex items-center gap-2">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -140,7 +140,7 @@
         </div>
 
         <!-- Void / Cancel -->
-        <button type="button" onclick="openVoidModal()"
+        <button id="cancelSessionBtn" type="button" onclick="openVoidModal()"
                 class="w-full flex items-center justify-center gap-2 border border-gray-300 hover:bg-red-50 hover:border-red-300 hover:text-red-700 text-gray-600 text-[13px] font-medium px-4 py-2.5 rounded-lg transition-colors">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -193,6 +193,27 @@
 </div>
 
 <script>
+  function lockActions() {
+    ['completeBtn', 'incompleteToggleBtn', 'cancelSessionBtn'].forEach(function(id) {
+      const btn = document.getElementById(id);
+      if (btn) {
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+      }
+    });
+    // also disable the incomplete submit if it exists
+    const incSubmit = document.querySelector('#incompleteForm [type="submit"]');
+    if (incSubmit) {
+      incSubmit.disabled = true;
+      incSubmit.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+  }
+
+  // Lock all actions when any of the three forms are submitted
+  document.querySelector('form[action*="/complete/"]').addEventListener('submit', lockActions);
+  document.querySelector('form[action*="/incomplete/"]').addEventListener('submit', lockActions);
+  document.querySelector('form[action*="/void/"]').addEventListener('submit', lockActions);
+
   function toggleIncomplete() {
     const form    = document.getElementById('incompleteForm');
     const chevron = document.getElementById('incompleteChevron');

@@ -4,19 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Serial Tracker{% endblock %}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            sidebar: '#3b2314',
-            'sidebar-hover': '#4d2e17',
-          }
-        }
-      }
-    }
-  </script>
+  <link rel="stylesheet" href="/static/tailwind.css">
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
     .nav-active { background: rgba(255,255,255,0.12); }
@@ -119,6 +107,15 @@
   <div class="flex-1 flex flex-col h-screen overflow-hidden">
     {% block content %}{% endblock %}
   </div>
+
+<script>
+  document.addEventListener('submit', function(e) {
+    e.target.querySelectorAll('[type="submit"]').forEach(function(btn) {
+      btn.disabled = true;
+      btn.classList.add('opacity-50', 'cursor-not-allowed');
+    });
+  });
+</script>
 
 </body>
 </html>
