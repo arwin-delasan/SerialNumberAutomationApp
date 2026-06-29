@@ -105,13 +105,11 @@
           <a href="/sessions/{{ row.session_id }}" class="hover:text-blue-600 hover:underline">#{{ row.session_id }}</a>
         </td>
         <td class="px-4 py-2">
-          <form method="POST" action="/serials/{{ row.row_id }}/toggle-status?back=/serials?sort={{ sort }}&page={{ page }}" class="inline">
-            <button type="submit"
-                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer
-                           {% if row.serial_status == 'used' %}bg-green-100 text-green-700 hover:bg-green-200{% else %}bg-gray-100 text-gray-500 hover:bg-gray-200{% endif %}">
-              {{ 'Used' if row.serial_status == 'used' else 'Unused' }}
-            </button>
-          </form>
+          <button onclick="toggleStatus(this, {{ row.row_id }}, '{{ row.serial_status }}')"
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer
+                         {% if row.serial_status == 'used' %}bg-green-100 text-green-700 hover:bg-green-200{% else %}bg-gray-100 text-gray-500 hover:bg-gray-200{% endif %}">
+            {{ 'Used' if row.serial_status == 'used' else 'Unused' }}
+          </button>
         </td>
       </tr>
       {% endfor %}
@@ -204,7 +202,7 @@
         Cancel
       </button>
       <button onclick="doExport()"
-              class="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[12px] font-medium px-4 py-2 rounded-lg transition-colors">
+              class="flex items-center gap-1.5 bg-[#6e3f22] hover:bg-[#4d2e17] bg-hover text-white text-[12px] font-medium px-4 py-2 rounded-lg transition-colors">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
         </svg>
@@ -271,6 +269,31 @@
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') closeExportModal();
   });
+
+  function applyStatus(btn, status) {
+    if (status === 'used') {
+      btn.classList.remove('bg-gray-100', 'text-gray-500', 'hover:bg-gray-200');
+      btn.classList.add('bg-green-100', 'text-green-700', 'hover:bg-green-200');
+      btn.textContent = 'Used';
+    } else {
+      btn.classList.remove('bg-green-100', 'text-green-700', 'hover:bg-green-200');
+      btn.classList.add('bg-gray-100', 'text-gray-500', 'hover:bg-gray-200');
+      btn.textContent = 'Unused';
+    }
+  }
+
+  async function toggleStatus(btn, rowId, currentStatus) {
+    const newStatus = currentStatus === 'used' ? 'unused' : 'used';
+    applyStatus(btn, newStatus);
+    btn.onclick = () => toggleStatus(btn, rowId, newStatus);
+    try {
+      const resp = await fetch(`/serials/${rowId}/toggle-status`, { method: 'POST' });
+      if (!resp.ok) throw new Error();
+    } catch {
+      applyStatus(btn, currentStatus);
+      btn.onclick = () => toggleStatus(btn, rowId, currentStatus);
+    }
+  }
 </script>
 
 {% endblock %}
