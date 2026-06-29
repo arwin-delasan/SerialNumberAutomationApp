@@ -202,18 +202,21 @@ def count_admins(conn) -> int:
 # App settings
 # ---------------------------------------------------------------------------
 
-def get_setting(conn, key: str):
+def get_setting(conn, user_id: int, key: str):
     with conn.cursor(dictionary=True) as cur:
-        cur.execute("SELECT value FROM app_settings WHERE key_name = %s", (key,))
+        cur.execute(
+            "SELECT value FROM app_settings WHERE user_id = %s AND key_name = %s",
+            (user_id, key)
+        )
         row = cur.fetchone()
         return row["value"] if row else None
 
 
-def set_setting(conn, key: str, value: str):
+def set_setting(conn, user_id: int, key: str, value: str):
     with conn.cursor() as cur:
         cur.execute(
-            "INSERT INTO app_settings (key_name, value) VALUES (%s, %s) "
+            "INSERT INTO app_settings (user_id, key_name, value) VALUES (%s, %s, %s) "
             "ON DUPLICATE KEY UPDATE value = VALUES(value)",
-            (key, value)
+            (user_id, key, value)
         )
     conn.commit()

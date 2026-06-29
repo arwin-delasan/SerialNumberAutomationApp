@@ -44,9 +44,9 @@ def _owns(session, user) -> bool:
     return session["started_by_user_id"] == user["user_id"] or user["role"] == "admin"
 
 
-def _resolve_lbl_path(conn) -> str:
-    """DB setting > env var (if explicitly set) > auto-discovered > default."""
-    db_val = queries.get_setting(conn, "lbl_path")
+def _resolve_lbl_path(conn, user_id: int) -> str:
+    """User DB setting > env var (if explicitly set) > auto-discovered > default."""
+    db_val = queries.get_setting(conn, user_id, "lbl_path")
     if db_val:
         return db_val
     if LBL_PATH != "ZebraAutomated.lbl":
@@ -55,9 +55,9 @@ def _resolve_lbl_path(conn) -> str:
     return discovered if discovered else LBL_PATH
 
 
-def _open_label(conn):
+def _open_label(conn, user_id: int):
     """Open ZebraAutomated.lbl after a 2-second delay. Silent if file not found."""
-    path = _resolve_lbl_path(conn)
+    path = _resolve_lbl_path(conn, user_id)
     def _delayed():
         time.sleep(2)
         resolved = os.path.abspath(path)
@@ -174,7 +174,7 @@ def print_do_start(
             status_code=303,
         )
 
-    _open_label(conn)
+    _open_label(conn, user["user_id"])
     return RedirectResponse(f"/print/confirm/{session['session_id']}", status_code=303)
 
 

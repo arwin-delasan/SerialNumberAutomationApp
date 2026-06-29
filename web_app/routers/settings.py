@@ -15,9 +15,9 @@ router = APIRouter(prefix="/settings")
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "..", "templates"))
 
 
-def _current_lbl_state(conn) -> dict:
-    """Return the active lbl_path and its source label."""
-    db_val = queries.get_setting(conn, "lbl_path")
+def _current_lbl_state(conn, user_id: int) -> dict:
+    """Return the active lbl_path for this user and its source label."""
+    db_val = queries.get_setting(conn, user_id, "lbl_path")
     if db_val:
         return {"path": db_val, "source": "db"}
     if LBL_PATH != "ZebraAutomated.lbl":
@@ -35,9 +35,9 @@ def settings_page(
     saved: str = "",
     error: str = "",
     conn=Depends(get_db),
-    user=Depends(require_role("admin")),
+    user=Depends(require_role("view_actions")),
 ):
-    state = _current_lbl_state(conn)
+    state = _current_lbl_state(conn, user["user_id"])
     return templates.TemplateResponse(request, "settings.html", {
         "user": user,
         "lbl_state": state,
@@ -51,7 +51,7 @@ def settings_page(
 def settings_discover(
     request: Request,
     conn=Depends(get_db),
-    user=Depends(require_role("admin")),
+    user=Depends(require_role("view_actions")),
 ):
     found = find_lbl_file()
     if found:
@@ -63,10 +63,10 @@ def settings_discover(
 def settings_save_lbl(
     path: str = Form(...),
     conn=Depends(get_db),
-    user=Depends(require_role("admin")),
+    user=Depends(require_role("view_actions")),
 ):
     path = path.strip()
     if not path:
         return RedirectResponse("/settings?error=Path+cannot+be+empty", status_code=303)
-    queries.set_setting(conn, "lbl_path", path)
+    queries.set_setting(conn, user["user_id"], "lbl_path", path)
     return RedirectResponse("/settings?saved=1", status_code=303)
