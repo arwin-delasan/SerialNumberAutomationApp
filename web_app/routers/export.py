@@ -18,7 +18,7 @@ templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), ".
 
 @router.get("/export")
 def export_form(request: Request, error: str = "", user=Depends(require_role("view_only"))):
-    return templates.TemplateResponse(request, "export.html", {"error": error, "user": user})
+    return templates.TemplateResponse(request, "serials/export.html", {"error": error, "user": user})
 
 
 @router.get("/export/download")

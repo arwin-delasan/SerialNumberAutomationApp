@@ -98,7 +98,7 @@ def print_start(
             return RedirectResponse(f"/print/confirm/{active['session_id']}", status_code=303)
         # Another user is printing — show locked state
         owner = queries.get_user_by_id(conn, active["started_by_user_id"])
-        return templates.TemplateResponse(request, "print_start.html", {
+        return templates.TemplateResponse(request, "print/start.html", {
             "seeded": True,
             "next_serial": None,
             "next_random": None,
@@ -114,7 +114,7 @@ def print_start(
     seeded = db.has_counter()
     next_serial = db.get_next_serial() if seeded else None
     next_random = db.get_next_random() if seeded else None
-    return templates.TemplateResponse(request, "print_start.html", {
+    return templates.TemplateResponse(request, "print/start.html", {
         "seeded": seeded,
         "next_serial": next_serial,
         "next_random": next_random,
@@ -198,7 +198,7 @@ def print_confirm(
     if not _owns(session, user):
         return RedirectResponse("/print", status_code=303)
     age_minutes = int((datetime.now() - session["created_at"]).total_seconds() / 60)
-    return templates.TemplateResponse(request, "print_confirm.html", {
+    return templates.TemplateResponse(request, "print/confirm.html", {
         "session": session,
         "error": error,
         "age_minutes": age_minutes,

@@ -36,7 +36,7 @@ def serials_view(
     min_serial = bounds["min_serial"] if bounds else None
     max_serial = bounds["max_serial"] if bounds else None
 
-    return templates.TemplateResponse(request, "serials.html", {
+    return templates.TemplateResponse(request, "serials/list.html", {
         "rows": rows,
         "page": page,
         "sort": sort,

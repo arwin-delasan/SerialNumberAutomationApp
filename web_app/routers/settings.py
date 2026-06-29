@@ -38,7 +38,7 @@ def settings_page(
     user=Depends(require_role("view_actions")),
 ):
     state = _current_lbl_state(conn, user["user_id"])
-    return templates.TemplateResponse(request, "settings.html", {
+    return templates.TemplateResponse(request, "settings/index.html", {
         "user": user,
         "lbl_state": state,
         "discovered": discovered or None,

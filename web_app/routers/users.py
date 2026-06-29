@@ -15,7 +15,7 @@ VALID_ROLES = {"view_only", "view_actions", "admin"}
 @router.get("")
 def users_list(request: Request, conn=Depends(get_db), user=Depends(require_role("admin"))):
     users = queries.list_users(conn)
-    return templates.TemplateResponse(request, "users.html", {
+    return templates.TemplateResponse(request, "users/list.html", {
         "users": users,
         "user": user,
         "error": request.query_params.get("error", ""),

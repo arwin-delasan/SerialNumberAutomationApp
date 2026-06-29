@@ -21,7 +21,7 @@ def sessions_list(
 ):
     rows, total = queries.list_sessions(db, page, PAGE_SIZE)
     total_pages = max(1, math.ceil(total / PAGE_SIZE))
-    return templates.TemplateResponse(request, "sessions.html", {
+    return templates.TemplateResponse(request, "sessions/list.html", {
         "sessions": rows,
         "page": page,
         "total_pages": total_pages,
@@ -41,7 +41,7 @@ def session_detail(
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
     rows = queries.get_session_rows(db, session_id)
-    return templates.TemplateResponse(request, "session_detail.html", {
+    return templates.TemplateResponse(request, "sessions/detail.html", {
         "session": session,
         "rows": rows,
         "user": user,
