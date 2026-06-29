@@ -46,6 +46,7 @@
       Refresh
     </button>
 
+    {% if total > 0 %}
     <!-- Export button -->
     <button onclick="openExportModal()"
             class="flex items-center gap-1.5 bg-[#6e3f22] hover:bg-[#4d2e17] text-white text-[12px] font-medium px-3 py-1.5 rounded-md transition-colors">
@@ -54,6 +55,7 @@
       </svg>
       Export CSV
     </button>
+    {% endif %}
   </div>
 </div>
 

@@ -61,7 +61,7 @@ def settings_discover(
 
 @router.post("/lbl-path")
 def settings_save_lbl(
-    path: str = Form(...),
+    path: str = Form(""),
     conn=Depends(get_db),
     user=Depends(require_role("view_actions")),
 ):

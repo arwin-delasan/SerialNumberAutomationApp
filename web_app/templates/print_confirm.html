@@ -140,20 +140,55 @@
         </div>
 
         <!-- Void / Cancel -->
-        <form method="POST" action="/print/void/{{ session.session_id }}"
-              onsubmit="return confirm('Cancel this session? The reserved serial range will be voided and cannot be recovered.')">
-          <button type="submit"
-                  class="w-full flex items-center justify-center gap-2 border border-gray-300 hover:bg-red-50 hover:border-red-300 hover:text-red-700 text-gray-600 text-[13px] font-medium px-4 py-2.5 rounded-lg transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-            Cancel Session
-          </button>
-        </form>
+        <button type="button" onclick="openVoidModal()"
+                class="w-full flex items-center justify-center gap-2 border border-gray-300 hover:bg-red-50 hover:border-red-300 hover:text-red-700 text-gray-600 text-[13px] font-medium px-4 py-2.5 rounded-lg transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+          Cancel Session
+        </button>
 
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- Void confirmation modal -->
+<div id="voidModal" class="fixed inset-0 z-50 hidden items-center justify-center"
+     onclick="if(event.target===this) closeVoidModal()">
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+  <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+    <div class="px-6 py-5">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-9 h-9 bg-red-100 rounded-full flex items-center justify-center shrink-0">
+          <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </div>
+        <div>
+          <p class="text-[13px] font-semibold text-gray-900">Cancel this session?</p>
+          <p class="text-[12px] text-gray-500">Session #{{ session.session_id }}</p>
+        </div>
+      </div>
+      <p class="text-[12px] text-gray-500 mb-5">
+        The reserved serial range
+        <span class="font-mono text-gray-700">{{ "{:,}".format(session.serial_range_start) }}–{{ "{:,}".format(session.serial_range_end) }}</span>
+        will be voided and the counter rolled back. This cannot be undone.
+      </p>
+      <div class="flex items-center gap-2 justify-end">
+        <button onclick="closeVoidModal()"
+                class="px-4 py-2 text-[12px] font-medium text-gray-600 hover:text-gray-900 transition-colors">
+          Keep Session
+        </button>
+        <form method="POST" action="/print/void/{{ session.session_id }}">
+          <button type="submit"
+                  class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-[12px] font-semibold rounded-lg transition-colors">
+            Yes, Cancel Session
+          </button>
+        </form>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -164,6 +199,22 @@
     const hidden  = form.classList.toggle('hidden');
     chevron.style.transform = hidden ? '' : 'rotate(180deg)';
   }
+
+  function openVoidModal() {
+    const m = document.getElementById('voidModal');
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+  }
+
+  function closeVoidModal() {
+    const m = document.getElementById('voidModal');
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeVoidModal();
+  });
 </script>
 
 {% endblock %}
