@@ -67,7 +67,7 @@
           <form method="POST" action="/settings/lbl-path">
             <input type="hidden" name="path" value="{{ discovered }}"/>
             <button type="submit"
-                    class="bg-[#6e3f22] hover:bg-[#4d2e17] text-white text-[12px] font-semibold px-4 py-2 rounded-lg transition-colors">
+                    class="bg-[#6e3f22] hover:bg-[#4d2e17] text-white text-[12px] cursor-pointer font-semibold px-4 py-2 rounded-lg transition-colors">
               Use this path
             </button>
           </form>
@@ -75,7 +75,7 @@
         {% endif %}
         <form method="POST" action="/settings/discover">
           <button type="submit"
-                  class="flex items-center gap-2 text-[12px] font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg transition-colors">
+                  class="flex items-center gap-2 text-[12px] font-medium cursor-pointer text-gray-700 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg transition-colors">
             <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
@@ -97,7 +97,7 @@
                placeholder="e.g. C:\Users\Operator\Desktop\ZebraAutomated.lbl"
                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-[12px] font-mono focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"/>
         <button type="submit"
-                class="bg-[#6e3f22] hover:bg-[#4d2e17] text-white text-[12px] font-semibold px-4 py-2 rounded-lg transition-colors">
+                class="bg-[#6e3f22] hover:bg-[#4d2e17] text-white text-[12px] cursor-pointer font-semibold px-4 py-2 rounded-lg transition-colors">
           Save Path
         </button>
       </form>

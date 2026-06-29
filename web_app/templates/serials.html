@@ -39,7 +39,7 @@
 
     <!-- Refresh button -->
     <button onclick="window.location.reload()"
-            class="flex items-center gap-1.5 text-gray-500 hover:text-gray-800 text-[12px] font-medium transition-colors px-2.5 py-1.5 rounded hover:bg-gray-100">
+            class="flex items-center gap-1.5 text-gray-500 hover:text-gray-800 text-[12px] cursor-pointer font-medium transition-colors px-2.5 py-1.5 rounded hover:bg-gray-100">
       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
       </svg>
@@ -49,7 +49,7 @@
     {% if total > 0 %}
     <!-- Export button -->
     <button onclick="openExportModal()"
-            class="flex items-center gap-1.5 bg-[#6e3f22] hover:bg-[#4d2e17] text-white text-[12px] font-medium px-3 py-1.5 rounded-md transition-colors">
+            class="flex items-center gap-1.5 bg-[#6e3f22] hover:bg-[#4d2e17] text-white text-[12px] cursor-pointer font-medium px-3 py-1.5 rounded-md transition-colors">
       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
       </svg>
@@ -169,7 +169,7 @@
         <h2 class="text-sm font-semibold text-gray-900">Export Serial Numbers</h2>
         <p class="text-[12px] text-gray-400 mt-0.5">Confirmed rows only · CSV format</p>
       </div>
-      <button onclick="closeExportModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+      <button onclick="closeExportModal()" class="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
         </svg>
@@ -200,11 +200,11 @@
     <!-- Footer -->
     <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-end gap-2">
       <button onclick="closeExportModal()"
-              class="px-4 py-2 text-[12px] font-medium text-gray-600 hover:text-gray-900 transition-colors">
+              class="px-4 py-2 text-[12px] font-medium text-gray-600 hover:text-gray-900 cursor-pointer transition-colors">
         Cancel
       </button>
       <button onclick="doExport()"
-              class="flex items-center gap-1.5 bg-[#6e3f22] hover:bg-[#4d2e17] bg-hover text-white text-[12px] font-medium px-4 py-2 rounded-lg transition-colors">
+              class="flex items-center gap-1.5 bg-[#6e3f22] hover:bg-[#4d2e17] bg-hover cursor-pointer text-white text-[12px] font-medium px-4 py-2 rounded-lg transition-colors">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
         </svg>

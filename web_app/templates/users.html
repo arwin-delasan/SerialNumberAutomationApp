@@ -16,7 +16,7 @@
     </div>
     <button
       onclick="openCreateModal()"
-      class="flex items-center gap-1.5 bg-[#6e3f22] hover:bg-[#4d2e17] text-white text-[12px] font-medium px-3 py-1.5 rounded-lg transition-colors"
+      class="flex items-center gap-1.5 bg-[#6e3f22] hover:bg-[#4d2e17] text-white cursor-pointer text-[12px] font-medium px-3 py-1.5 rounded-lg transition-colors"
     >
       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -61,14 +61,14 @@
             <div class="flex items-center justify-end gap-2">
               <button
                 onclick="openEditModal('{{ u.user_id }}', '{{ u.username }}', '{{ u.role }}')"
-                class="text-[11px] text-gray-500 hover:text-blue-600 hover:bg-blue-50 px-2.5 py-1 rounded-md transition-colors font-medium"
+                class="text-[11px] text-gray-500 cursor-pointer hover:text-blue-600 hover:bg-blue-50 px-2.5 py-1 rounded-md transition-colors font-medium"
               >
                 Edit
               </button>
               {% if u.user_id != user.user_id %}
               <button
                 onclick="openDeleteModal('{{ u.user_id }}', '{{ u.username }}')"
-                class="text-[11px] text-gray-500 hover:text-red-600 hover:bg-red-50 px-2.5 py-1 rounded-md transition-colors font-medium"
+                class="text-[11px] text-gray-500 cursor-pointer hover:text-red-600 hover:bg-red-50 px-2.5 py-1 rounded-md transition-colors font-medium"
               >
                 Delete
               </button>
@@ -139,13 +139,13 @@
         <button
           type="button"
           onclick="closeModal('userModal')"
-          class="text-[12px] px-4 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+          class="text-[12px] px-4 py-1.5 rounded-lg border border-gray-200 cursor-pointer text-gray-600 hover:bg-gray-50 transition-colors"
         >
           Cancel
         </button>
         <button
           type="submit"
-          class="text-[12px] px-4 py-1.5 rounded-lg bg-[#6e3f22] hover:bg-[#4d2e17] text-white font-medium transition-colors"
+          class="text-[12px] px-4 py-1.5 rounded-lg bg-[#6e3f22] hover:bg-[#4d2e17] cursor-pointer text-white font-medium transition-colors"
         >
           Save
         </button>
