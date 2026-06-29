@@ -60,14 +60,14 @@
           <td class="px-4 py-2.5 text-right">
             <div class="flex items-center justify-end gap-2">
               <button
-                onclick="openEditModal({{ u.user_id }}, '{{ u.username }}', '{{ u.role }}')"
+                onclick="openEditModal('{{ u.user_id }}', '{{ u.username }}', '{{ u.role }}')"
                 class="text-[11px] text-gray-500 hover:text-blue-600 hover:bg-blue-50 px-2.5 py-1 rounded-md transition-colors font-medium"
               >
                 Edit
               </button>
               {% if u.user_id != user.user_id %}
               <button
-                onclick="openDeleteModal({{ u.user_id }}, '{{ u.username }}')"
+                onclick="openDeleteModal('{{ u.user_id }}', '{{ u.username }}')"
                 class="text-[11px] text-gray-500 hover:text-red-600 hover:bg-red-50 px-2.5 py-1 rounded-md transition-colors font-medium"
               >
                 Delete

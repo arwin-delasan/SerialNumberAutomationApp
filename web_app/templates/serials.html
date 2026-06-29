@@ -105,7 +105,7 @@
           <a href="/sessions/{{ row.session_id }}" class="hover:text-blue-600 hover:underline">#{{ row.session_id }}</a>
         </td>
         <td class="px-4 py-2">
-          <button onclick="toggleStatus(this, {{ row.row_id }}, '{{ row.serial_status }}')"
+          <button onclick="toggleStatus(this, '{{ row.row_id }}', '{{ row.serial_status }}')"
                   class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer
                          {% if row.serial_status == 'used' %}bg-green-100 text-green-700 hover:bg-green-200{% else %}bg-gray-100 text-gray-500 hover:bg-gray-200{% endif %}">
             {{ 'Used' if row.serial_status == 'used' else 'Unused' }}
@@ -213,10 +213,8 @@
 </div>
 
 <script>
-  const FIRST_SERIAL = {{ first_serial or 'null' }};
-  const LAST_SERIAL  = {{ last_serial  or 'null' }};
-  const MIN_SERIAL   = {{ min_serial   or 'null' }};
-  const MAX_SERIAL   = {{ max_serial   or 'null' }};
+  const MIN_SERIAL   = {{ min_serial or 'null' }};
+  const MAX_SERIAL   = {{ max_serial or 'null' }};
 
   function openExportModal() {
     const modal = document.getElementById('exportModal');
