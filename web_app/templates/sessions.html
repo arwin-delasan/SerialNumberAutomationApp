@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Print Sessions · Serial Tracker{% endblock %}
+{% block title %}Print Sessions  - Serial Tracker{% endblock %}
 
 {% block content %}
 
@@ -46,6 +46,9 @@
         <th class="px-4 py-2 text-left font-medium text-gray-500 border-r border-gray-100">
           <span class="text-gray-400 text-[10px] mr-1">≡</span>status
         </th>
+        <th class="px-4 py-2 text-left font-medium text-gray-500 border-r border-gray-100">
+          <span class="text-gray-400 text-[10px] mr-1">@</span>started_by
+        </th>
         <th class="px-4 py-2 text-left font-medium text-gray-500">
           <span class="text-gray-400 text-[10px] mr-1">⊙</span>created_at
         </th>
@@ -71,6 +74,7 @@
             <span class="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-100 text-red-600">Voided</span>
           {% endif %}
         </td>
+        <td class="px-4 py-2 text-gray-600 border-r border-gray-100">{{ s.started_by_username or "—" }}</td>
         <td class="px-4 py-2 text-gray-400">{{ s.created_at }}</td>
       </tr>
       {% endfor %}

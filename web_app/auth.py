@@ -1,0 +1,54 @@
+import bcrypt as _bcrypt
+from fastapi import Depends, HTTPException, Request
+from web_app.dependencies import get_db
+import web_app.queries as queries
+
+ROLE_LEVELS = {"view_only": 1, "view_actions": 2, "admin": 3}
+
+
+def hash_password(password: str) -> str:
+    return _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
+
+
+def verify_password(password: str, hashed: str) -> bool:
+    return _bcrypt.checkpw(password.encode(), hashed.encode())
+
+
+class NeedsLogin(Exception):
+    def __init__(self, next_url: str = "/"):
+        self.next_url = next_url
+
+
+def require_role(min_role: str):
+    """
+    Dependency factory that enforces authentication and a minimum role level.
+    Raises NeedsLogin if not authenticated (handled in app.py → redirect to /login).
+    Raises HTTPException(403) if authenticated but insufficient role.
+    Returns the user dict on success.
+    """
+    def dependency(request: Request, conn=Depends(get_db)):
+        user_id = request.session.get("user_id")
+        if not user_id:
+            raise NeedsLogin(str(request.url.path))
+        user = queries.get_user_by_id(conn, user_id)
+        if user is None:
+            request.session.clear()
+            raise NeedsLogin(str(request.url.path))
+        if ROLE_LEVELS.get(user["role"], 0) < ROLE_LEVELS[min_role]:
+            raise HTTPException(status_code=403, detail="Access denied")
+        return user
+    return dependency
+
+
+def seed_default_admin(db) -> None:
+    """Insert admin/admin if the users table is empty."""
+    conn = db.connect()
+    with conn.cursor(dictionary=True) as cur:
+        cur.execute("SELECT COUNT(*) AS cnt FROM users")
+        if cur.fetchone()["cnt"] == 0:
+            hashed = hash_password("admin")
+            cur.execute(
+                "INSERT INTO users (username, password_hash, role) VALUES (%s, %s, 'admin')",
+                ("admin", hashed)
+            )
+    conn.commit()

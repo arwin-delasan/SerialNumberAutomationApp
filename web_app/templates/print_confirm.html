@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Confirm Print · Serial Tracker{% endblock %}
+{% block title %}Confirm Print  - Serial Tracker{% endblock %}
 
 {% block content %}
 
@@ -74,7 +74,7 @@
           <p class="text-[12px] font-semibold text-blue-800 mb-1.5">Printing Instructions</p>
           <ol class="text-[12px] text-blue-700 space-y-1 list-decimal list-inside">
             <li>Open <span class="font-mono font-semibold">ZebraDesigner Pro 2</span></li>
-            <li>Load label file: <span class="font-mono font-semibold">AutomatedZebraPrinter.lbl</span></li>
+            <li>Load label file: <span class="font-mono font-semibold">ZebraAutomated.lbl</span></li>
             <li>Print <span class="font-mono font-semibold">{{ "{:,}".format(session.quantity_requested) }}</span> labels</li>
           </ol>
         </div>

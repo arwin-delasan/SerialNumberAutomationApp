@@ -6,6 +6,7 @@ import sys
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from web_app.auth import require_role
 from web_app.dependencies import get_db
 import web_app.queries as queries
 
@@ -24,6 +25,7 @@ def serials_view(
     page: int = 1,
     sort: str = "desc",
     db=Depends(get_db),
+    user=Depends(require_role("view_only")),
 ):
     rows, total = queries.list_all_serials(db, page, PAGE_SIZE, sort)
     total_pages = max(1, math.ceil(total / PAGE_SIZE))
@@ -44,11 +46,17 @@ def serials_view(
         "last_serial": last_serial,
         "min_serial": min_serial,
         "max_serial": max_serial,
+        "user": user,
     })
 
 
 @router.post("/serials/{row_id}/toggle-status")
-def toggle_serial_status(row_id: int, request: Request, db=Depends(get_db)):
+def toggle_serial_status(
+    row_id: int,
+    request: Request,
+    db=Depends(get_db),
+    user=Depends(require_role("view_actions")),
+):
     with db.cursor(dictionary=True) as cur:
         cur.execute("SELECT status FROM session_rows WHERE row_id = %s", (row_id,))
         row = cur.fetchone()
@@ -60,7 +68,12 @@ def toggle_serial_status(row_id: int, request: Request, db=Depends(get_db)):
 
 
 @router.get("/serials/export")
-def serials_export(start_serial: int, end_serial: int, db=Depends(get_db)):
+def serials_export(
+    start_serial: int,
+    end_serial: int,
+    db=Depends(get_db),
+    user=Depends(require_role("view_only")),
+):
     def csv_stream():
         buf = io.StringIO()
         writer = csv.writer(buf)

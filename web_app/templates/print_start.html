@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Print Session · Serial Tracker{% endblock %}
+{% block title %}Print Session  - Serial Tracker{% endblock %}
 
 {% block content %}
 
@@ -10,6 +10,35 @@
 
 <div class="flex-1 overflow-y-auto flex items-start justify-center p-8">
   <div class="w-full max-w-md space-y-5">
+
+    {% if locked_by %}
+    <!-- ── Locked by another user ── -->
+    <div class="flex flex-col items-center text-center py-10 space-y-4">
+      <div class="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center">
+        <svg class="w-7 h-7 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        </svg>
+      </div>
+      <div class="space-y-1">
+        <p class="text-sm font-semibold text-gray-800">Print session in progress</p>
+        <p class="text-[12px] text-gray-500">
+          <span class="font-medium text-gray-700">{{ locked_by }}</span> is currently printing
+          {% if locked_since %}· started at {{ locked_since.strftime('%H:%M') }}{% endif %}
+        </p>
+      </div>
+      <p class="text-[11px] text-gray-400">Please wait until their session is complete before starting a new one.</p>
+      {% if user.role == 'admin' and active_session_id %}
+      <a href="/print/confirm/{{ active_session_id }}"
+         class="inline-flex items-center gap-1.5 text-[12px] text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-4 py-2 rounded-lg transition-colors font-medium">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+        </svg>
+        View active session (admin)
+      </a>
+      {% endif %}
+    </div>
+
+    {% else %}
 
     {% if error %}
     <div class="bg-red-50 border border-red-200 text-red-700 text-[12px] rounded-lg px-4 py-3">
@@ -83,12 +112,14 @@
           {% endif %}
         </div>
         <button type="submit"
-                class="w-full bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-semibold py-2.5 rounded-lg transition-colors">
+                class="w-full bg-[#6e3f22] hover:bg-[#4d2e17] text-white text-[13px] font-semibold py-2.5 rounded-lg transition-colors">
           Start Printing Session
         </button>
       </form>
     </div>
     {% endif %}
+
+    {% endif %}{# end locked_by #}
 
   </div>
 </div>

@@ -1,15 +1,15 @@
 import os
 import csv
 import io
+import sys
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from web_app.auth import require_role
 from web_app.dependencies import get_db
 import web_app.queries as queries
 
-sys_path_dir = os.path.join(os.path.dirname(__file__), "..", "..", "serial_exporter")
-import sys
-sys.path.insert(0, sys_path_dir)
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "serial_exporter"))
 from config import SERIAL_COLUMN_HEADER, RANDOM_COLUMN_HEADER
 
 router = APIRouter()
@@ -17,12 +17,17 @@ templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), ".
 
 
 @router.get("/export")
-def export_form(request: Request, error: str = ""):
-    return templates.TemplateResponse(request, "export.html", {"error": error})
+def export_form(request: Request, error: str = "", user=Depends(require_role("view_only"))):
+    return templates.TemplateResponse(request, "export.html", {"error": error, "user": user})
 
 
 @router.get("/export/download")
-def export_download(start_serial: int, end_serial: int, db=Depends(get_db)):
+def export_download(
+    start_serial: int,
+    end_serial: int,
+    db=Depends(get_db),
+    user=Depends(require_role("view_only")),
+):
     if start_serial > end_serial:
         return RedirectResponse(url="/export?error=Start+serial+must+be+less+than+or+equal+to+end+serial")
 

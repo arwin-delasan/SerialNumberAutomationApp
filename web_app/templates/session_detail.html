@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Session #{{ session.session_id }} · Serial Tracker{% endblock %}
+{% block title %}Session #{{ session.session_id }}  - Serial Tracker{% endblock %}
 
 {% block content %}
 
@@ -39,6 +39,10 @@
         <p class="font-mono text-gray-800">{{ "{:,}".format(session.quantity_requested) }}</p>
       </div>
       <div>
+        <p class="text-gray-400 font-medium mb-0.5">Started By</p>
+        <p class="font-mono text-gray-800">{{ session.started_by_username or "—" }}</p>
+      </div>
+      <div>
         <p class="text-gray-400 font-medium mb-0.5">Created At</p>
         <p class="text-gray-600">{{ session.created_at }}</p>
       </div>
@@ -62,7 +66,7 @@
         Printed Rows{% if rows %} ({{ "{:,}".format(rows|length) }}){% endif %}
       </p>
       {% if rows %}
-      <a href="/serials/export?start={{ session.serial_range_start }}&limit={{ session.quantity_requested }}"
+      <a href="/export/download?start_serial={{ session.serial_range_start }}&end_serial={{ session.serial_range_end }}"
          class="flex items-center gap-1.5 text-[11px] text-blue-600 hover:underline">
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>

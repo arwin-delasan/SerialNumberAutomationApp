@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% block title %}Users  - Serial Tracker{% endblock %}
+
+{% block content %}
+<div class="flex flex-col h-screen overflow-hidden">
+
+  <!-- Top bar -->
+  <div class="shrink-0 border-b border-gray-200 bg-white px-5 py-3 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <code class="text-[11px] text-gray-500 bg-gray-100 px-2.5 py-1 rounded font-mono">
+        SELECT * FROM serial_tracker.users
+      </code>
+      {% if error %}
+      <span class="text-[12px] text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-lg">{{ error }}</span>
+      {% endif %}
+    </div>
+    <button
+      onclick="openCreateModal()"
+      class="flex items-center gap-1.5 bg-[#6e3f22] hover:bg-[#4d2e17] text-white text-[12px] font-medium px-3 py-1.5 rounded-lg transition-colors"
+    >
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      Add User
+    </button>
+  </div>
+
+  <!-- Table -->
+  <div class="flex-1 overflow-auto">
+    <table class="w-full text-[12px] text-left border-collapse">
+      <thead class="sticky top-0 bg-gray-50 border-b border-gray-200 z-10">
+        <tr class="text-gray-500 font-medium uppercase tracking-wide text-[10px]">
+          <th class="px-5 py-2.5">#</th>
+          <th class="px-4 py-2.5">Username</th>
+          <th class="px-4 py-2.5">Role</th>
+          <th class="px-4 py-2.5">Created</th>
+          <th class="px-4 py-2.5 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for u in users %}
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="px-5 py-2.5 text-gray-400 font-mono">{{ loop.index }}</td>
+          <td class="px-4 py-2.5 font-medium text-gray-800">
+            {{ u.username }}
+            {% if u.user_id == user.user_id %}
+            <span class="ml-1.5 text-[10px] text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded">you</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-2.5">
+            {% if u.role == 'admin' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700">Admin</span>
+            {% elif u.role == 'view_actions' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">View + Actions</span>
+            {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">View Only</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-2.5 text-gray-400 font-mono">{{ u.created_at.strftime('%Y-%m-%d %H:%M') if u.created_at else '—' }}</td>
+          <td class="px-4 py-2.5 text-right">
+            <div class="flex items-center justify-end gap-2">
+              <button
+                onclick="openEditModal({{ u.user_id }}, '{{ u.username }}', '{{ u.role }}')"
+                class="text-[11px] text-gray-500 hover:text-blue-600 hover:bg-blue-50 px-2.5 py-1 rounded-md transition-colors font-medium"
+              >
+                Edit
+              </button>
+              {% if u.user_id != user.user_id %}
+              <button
+                onclick="openDeleteModal({{ u.user_id }}, '{{ u.username }}')"
+                class="text-[11px] text-gray-500 hover:text-red-600 hover:bg-red-50 px-2.5 py-1 rounded-md transition-colors font-medium"
+              >
+                Delete
+              </button>
+              {% else %}
+              <span class="text-[11px] text-gray-300 px-2.5 py-1">Delete</span>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="px-5 py-10 text-center text-gray-400 text-[12px]">No users found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- Add / Edit Modal -->
+<div id="userModal" class="hidden fixed inset-0 z-50 items-center justify-center bg-black/40 backdrop-blur-sm">
+  <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+      <h2 id="modalTitle" class="text-[13px] font-semibold text-gray-800">Add User</h2>
+      <button onclick="closeModal('userModal')" class="text-gray-400 hover:text-gray-600 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <form id="userForm" method="POST" action="/users/create">
+      <input type="hidden" id="modalUserId" name="_user_id" />
+      <div class="px-5 py-4 space-y-4">
+        <div class="space-y-1.5">
+          <label class="block text-[11px] font-medium text-gray-600">Username</label>
+          <input
+            id="modalUsername"
+            name="username"
+            type="text"
+            required
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
+        <div class="space-y-1.5">
+          <label class="block text-[11px] font-medium text-gray-600">Role</label>
+          <select
+            id="modalRole"
+            name="role"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
+            <option value="view_only">View Only</option>
+            <option value="view_actions">View + Actions</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div class="space-y-1.5">
+          <label class="block text-[11px] font-medium text-gray-600">Password</label>
+          <input
+            id="modalPassword"
+            name="password"
+            type="password"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
+      </div>
+      <div class="px-5 py-3 border-t border-gray-100 flex justify-end gap-2">
+        <button
+          type="button"
+          onclick="closeModal('userModal')"
+          class="text-[12px] px-4 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          class="text-[12px] px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
+        >
+          Save
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="hidden fixed inset-0 z-50 items-center justify-center bg-black/40 backdrop-blur-sm">
+  <div class="bg-white rounded-xl shadow-2xl w-full max-w-xs mx-4">
+    <div class="px-5 py-5 space-y-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 bg-red-100 rounded-full flex items-center justify-center shrink-0">
+          <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div>
+          <p class="text-[13px] font-semibold text-gray-800">Delete user</p>
+          <p id="deleteMessage" class="text-[11px] text-gray-500 mt-0.5"></p>
+        </div>
+      </div>
+    </div>
+    <form id="deleteForm" method="POST">
+      <div class="px-5 py-3 border-t border-gray-100 flex justify-end gap-2">
+        <button
+          type="button"
+          onclick="closeModal('deleteModal')"
+          class="text-[12px] px-4 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          class="text-[12px] px-4 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
+        >
+          Delete
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openCreateModal() {
+    document.getElementById('modalTitle').textContent = 'Add User';
+    document.getElementById('userForm').action = '/users/create';
+    document.getElementById('modalUserId').value = '';
+    document.getElementById('modalUsername').value = '';
+    document.getElementById('modalRole').value = 'view_only';
+    document.getElementById('modalPassword').placeholder = 'Password';
+    document.getElementById('modalPassword').required = true;
+    showModal('userModal');
+    document.getElementById('modalUsername').focus();
+  }
+
+  function openEditModal(id, username, role) {
+    document.getElementById('modalTitle').textContent = 'Edit User';
+    document.getElementById('userForm').action = '/users/' + id + '/edit';
+    document.getElementById('modalUserId').value = id;
+    document.getElementById('modalUsername').value = username;
+    document.getElementById('modalRole').value = role;
+    document.getElementById('modalPassword').value = '';
+    document.getElementById('modalPassword').placeholder = 'Leave blank to keep current';
+    document.getElementById('modalPassword').required = false;
+    showModal('userModal');
+    document.getElementById('modalUsername').focus();
+  }
+
+  function openDeleteModal(id, username) {
+    document.getElementById('deleteMessage').textContent = 'Are you sure you want to delete "' + username + '"?';
+    document.getElementById('deleteForm').action = '/users/' + id + '/delete';
+    showModal('deleteModal');
+  }
+
+  function showModal(id) {
+    const el = document.getElementById(id);
+    el.classList.remove('hidden');
+    el.classList.add('flex');
+  }
+
+  function closeModal(id) {
+    const el = document.getElementById(id);
+    el.classList.add('hidden');
+    el.classList.remove('flex');
+  }
+
+  // Close on backdrop click
+  ['userModal', 'deleteModal'].forEach(id => {
+    document.getElementById(id).addEventListener('click', function(e) {
+      if (e.target === this) closeModal(id);
+    });
+  });
+
+  // Close on Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      closeModal('userModal');
+      closeModal('deleteModal');
+    }
+  });
+</script>
+{% endblock %}
