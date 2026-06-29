@@ -8,8 +8,8 @@
   <h1 class="text-sm font-semibold text-gray-800">New Print Session</h1>
 </div>
 
-<div class="flex-1 overflow-y-auto flex items-start justify-center p-8">
-  <div class="w-full max-w-md space-y-5">
+<div class="flex-1 overflow-y-auto flex items-start justify-center px-12 py-8">
+  <div class="w-full max-w-2xl space-y-5">
 
     {% if locked_by %}
     <!-- ── Locked by another user ── -->
@@ -84,7 +84,7 @@
 
     {% else %}
     <!-- ── Ready to print ── -->
-    <div class="grid grid-cols-2 gap-3">
+    <div class="grid grid-cols-2 gap-4">
       <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
         <p class="text-[11px] text-gray-400 font-medium mb-1">Next Serial Number</p>
         <p class="text-2xl font-mono font-bold text-gray-900">{{ "{:,}".format(next_serial) }}</p>
@@ -99,7 +99,7 @@
       <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
         <h2 class="text-sm font-semibold text-gray-800">Start Printing Session</h2>
       </div>
-      <form method="POST" action="/print/start" class="px-6 py-5 space-y-4">
+      <form method="POST" action="/print/start" class="px-6 py-4 space-y-4">
         <input type="hidden" name="start_serial" value=""/>
         <input type="hidden" name="start_random" value=""/>
         <div>
