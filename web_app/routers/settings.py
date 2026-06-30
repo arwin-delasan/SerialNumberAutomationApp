@@ -1,10 +1,12 @@
 import os
 import sys
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from web_app.auth import require_role
+from web_app.csrf import csrf_protect
 from web_app.dependencies import get_db
 import web_app.queries as queries
 
@@ -52,6 +54,7 @@ def settings_discover(
     request: Request,
     conn=Depends(get_db),
     user=Depends(require_role("view_actions")),
+    _csrf=Depends(csrf_protect),
 ):
     found = find_lbl_file()
     if found:
@@ -64,9 +67,14 @@ def settings_save_lbl(
     path: str = Form(""),
     conn=Depends(get_db),
     user=Depends(require_role("view_actions")),
+    _csrf=Depends(csrf_protect),
 ):
-    path = path.strip()
-    if not path:
+    resolved = Path(path.strip()).resolve()
+    if not path.strip():
         return RedirectResponse("/settings?error=Path+cannot+be+empty", status_code=303)
-    queries.set_setting(conn, user["user_id"], "lbl_path", path)
+    if resolved.suffix.lower() != ".lbl":
+        return RedirectResponse("/settings?error=Path+must+point+to+a+.lbl+file", status_code=303)
+    if not resolved.exists():
+        return RedirectResponse("/settings?error=File+not+found", status_code=303)
+    queries.set_setting(conn, user["user_id"], "lbl_path", str(resolved))
     return RedirectResponse("/settings?saved=1", status_code=303)

@@ -91,7 +91,8 @@
 
         <!-- Complete -->
         <form method="POST" action="/print/complete/{{ session.session_id }}">
-          <button id="completeBtn" type="submit"
+          <input type="hidden" name="_csrf" value="{{ request.session.get('csrf_token', '') }}">
+          <button id="completeBtn" type="button" onclick="openCompleteModal()"
                   class="w-full flex items-center justify-between cursor-pointer bg-green-600 hover:bg-green-700 text-white text-[13px] font-semibold px-4 py-3 rounded-lg transition-colors">
             <span class="flex items-center gap-2">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -119,6 +120,7 @@
           </button>
           <div id="incompleteForm" class="hidden border-t border-yellow-200 bg-white px-4 py-4">
             <form method="POST" action="/print/incomplete/{{ session.session_id }}" class="space-y-3">
+              <input type="hidden" name="_csrf" value="{{ request.session.get('csrf_token', '') }}">
               <div>
                 <label class="block text-[12px] font-medium text-gray-700 mb-1.5">
                   Last successfully printed serial number
@@ -131,7 +133,7 @@
                   Range: {{ "{:,}".format(session.serial_range_start) }} – {{ "{:,}".format(session.serial_range_end) }}
                 </p>
               </div>
-              <button type="submit"
+              <button id="incompleteSubmitBtn" type="button" onclick="openIncompleteModal()"
                       class="w-full bg-yellow-500 hover:bg-yellow-600 text-white text-[13px] cursor-pointer font-semibold py-2 rounded-lg transition-colors">
                 Confirm Incomplete
               </button>
@@ -151,6 +153,70 @@
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- Complete confirmation modal -->
+<div id="completeModal" class="fixed inset-0 z-50 hidden items-center justify-center"
+     onclick="if(event.target===this) closeCompleteModal()">
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+  <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+    <div class="px-6 py-5">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-9 h-9 bg-green-100 rounded-full flex items-center justify-center shrink-0">
+          <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+          </svg>
+        </div>
+        <div>
+          <p class="text-[13px] font-semibold text-gray-900">Mark session as complete?</p>
+          <p class="text-[12px] text-gray-500">All {{ "{:,}".format(session.quantity_requested) }} labels ({{ "{:,}".format(session.serial_range_start) }}–{{ "{:,}".format(session.serial_range_end) }}) will be confirmed.</p>
+        </div>
+      </div>
+      <p class="text-[12px] text-gray-400 mb-5">Only confirm if all labels printed successfully.</p>
+      <div class="flex items-center gap-2 justify-end">
+        <button onclick="closeCompleteModal()"
+                class="px-4 py-2 text-[12px] font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer">
+          Go Back
+        </button>
+        <button onclick="confirmComplete()"
+                class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-[12px] font-semibold rounded-lg transition-colors cursor-pointer">
+          Yes, Complete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Incomplete confirmation modal -->
+<div id="incompleteModal" class="fixed inset-0 z-50 hidden items-center justify-center"
+     onclick="if(event.target===this) closeIncompleteModal()">
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+  <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+    <div class="px-6 py-5">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-9 h-9 bg-yellow-100 rounded-full flex items-center justify-center shrink-0">
+          <svg class="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div>
+          <p class="text-[13px] font-semibold text-gray-900">Confirm incomplete session?</p>
+          <p class="text-[12px] text-gray-500">Last good serial: <span id="incompleteConfirmSerial" class="font-mono font-semibold text-gray-700"></span></p>
+        </div>
+      </div>
+      <p class="text-[12px] text-gray-400 mb-5">Serials after that point will be rolled back. This cannot be undone.</p>
+      <div class="flex items-center gap-2 justify-end">
+        <button onclick="closeIncompleteModal()"
+                class="px-4 py-2 text-[12px] font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer">
+          Go Back
+        </button>
+        <button onclick="confirmIncomplete()"
+                class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white text-[12px] font-semibold rounded-lg transition-colors cursor-pointer">
+          Yes, Confirm Incomplete
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -182,6 +248,7 @@
           Keep Session
         </button>
         <form method="POST" action="/print/void/{{ session.session_id }}">
+          <input type="hidden" name="_csrf" value="{{ request.session.get('csrf_token', '') }}">
           <button type="submit"
                   class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-[12px] font-semibold rounded-lg transition-colors">
             Yes, Cancel Session
@@ -194,47 +261,85 @@
 
 <script>
   function lockActions() {
-    ['completeBtn', 'incompleteToggleBtn', 'cancelSessionBtn'].forEach(function(id) {
-      const btn = document.getElementById(id);
+    ['completeBtn', 'incompleteToggleBtn', 'cancelSessionBtn', 'incompleteSubmitBtn'].forEach(function(id) {
+      var btn = document.getElementById(id);
       if (btn) {
         btn.disabled = true;
         btn.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
       }
     });
-    // also disable the incomplete submit if it exists
-    const incSubmit = document.querySelector('#incompleteForm [type="submit"]');
-    if (incSubmit) {
-      incSubmit.disabled = true;
-      incSubmit.classList.add('opacity-50', 'cursor-not-allowed');
-    }
   }
 
-  // Lock all actions when any of the three forms are submitted
-  document.querySelector('form[action*="/complete/"]').addEventListener('submit', lockActions);
-  document.querySelector('form[action*="/incomplete/"]').addEventListener('submit', lockActions);
+  // Lock when void form submits (the only form that still uses a regular submit button)
   document.querySelector('form[action*="/void/"]').addEventListener('submit', lockActions);
 
   function toggleIncomplete() {
-    const form    = document.getElementById('incompleteForm');
-    const chevron = document.getElementById('incompleteChevron');
-    const hidden  = form.classList.toggle('hidden');
+    var form    = document.getElementById('incompleteForm');
+    var chevron = document.getElementById('incompleteChevron');
+    var hidden  = form.classList.toggle('hidden');
     chevron.style.transform = hidden ? '' : 'rotate(180deg)';
   }
 
+  // ── Complete modal ──────────────────────────────────────────────────
+  function openCompleteModal() {
+    document.getElementById('completeModal').classList.remove('hidden');
+    document.getElementById('completeModal').classList.add('flex');
+  }
+
+  function closeCompleteModal() {
+    document.getElementById('completeModal').classList.add('hidden');
+    document.getElementById('completeModal').classList.remove('flex');
+  }
+
+  function confirmComplete() {
+    closeCompleteModal();
+    lockActions();
+    document.querySelector('form[action*="/complete/"]').requestSubmit();
+  }
+
+  // ── Incomplete modal ────────────────────────────────────────────────
+  function openIncompleteModal() {
+    var input = document.querySelector('[name="last_good_serial"]');
+    var val = parseInt(input.value);
+    var min = parseInt(input.min);
+    var max = parseInt(input.max);
+    if (!input.value || isNaN(val) || val < min || val > max) {
+      input.reportValidity();
+      return;
+    }
+    document.getElementById('incompleteConfirmSerial').textContent = val.toLocaleString();
+    document.getElementById('incompleteModal').classList.remove('hidden');
+    document.getElementById('incompleteModal').classList.add('flex');
+  }
+
+  function closeIncompleteModal() {
+    document.getElementById('incompleteModal').classList.add('hidden');
+    document.getElementById('incompleteModal').classList.remove('flex');
+  }
+
+  function confirmIncomplete() {
+    closeIncompleteModal();
+    lockActions();
+    document.querySelector('form[action*="/incomplete/"]').requestSubmit();
+  }
+
+  // ── Void modal ──────────────────────────────────────────────────────
   function openVoidModal() {
-    const m = document.getElementById('voidModal');
-    m.classList.remove('hidden');
-    m.classList.add('flex');
+    document.getElementById('voidModal').classList.remove('hidden');
+    document.getElementById('voidModal').classList.add('flex');
   }
 
   function closeVoidModal() {
-    const m = document.getElementById('voidModal');
-    m.classList.add('hidden');
-    m.classList.remove('flex');
+    document.getElementById('voidModal').classList.add('hidden');
+    document.getElementById('voidModal').classList.remove('flex');
   }
 
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeVoidModal();
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      closeCompleteModal();
+      closeIncompleteModal();
+      closeVoidModal();
+    }
   });
 </script>
 

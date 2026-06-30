@@ -92,6 +92,8 @@ def update_serial_status(conn, row_id: int, status: str) -> bool:
 
 
 def list_all_serials(conn, page: int, page_size: int, sort: str = "desc"):
+    if sort not in ("asc", "desc"):
+        sort = "desc"
     offset = (page - 1) * page_size
     order = "DESC" if sort == "desc" else "ASC"
     with conn.cursor(dictionary=True) as cur:

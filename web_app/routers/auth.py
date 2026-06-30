@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from web_app.auth import verify_password
+from web_app.csrf import csrf_protect
 from web_app.dependencies import get_db
 import web_app.queries as queries
 
@@ -29,6 +30,7 @@ def login_post(
     password: str = Form(...),
     next: str = Form("/"),
     conn=Depends(get_db),
+    _csrf=Depends(csrf_protect),
 ):
     # Check if currently locked out
     lockout_until = request.session.get("lockout_until")
@@ -69,6 +71,6 @@ def login_post(
 
 
 @router.post("/logout")
-def logout(request: Request):
+def logout(request: Request, _csrf=Depends(csrf_protect)):
     request.session.clear()
     return RedirectResponse("/login", status_code=302)

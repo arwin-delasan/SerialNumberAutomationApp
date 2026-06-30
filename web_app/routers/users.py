@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from web_app.auth import hash_password, require_role
+from web_app.csrf import csrf_protect
 from web_app.dependencies import get_db
 import web_app.queries as queries
 
@@ -30,13 +31,14 @@ def users_create(
     role: str = Form(...),
     conn=Depends(get_db),
     user=Depends(require_role("admin")),
+    _csrf=Depends(csrf_protect),
 ):
     if role not in VALID_ROLES:
         return RedirectResponse("/users?error=Invalid+role", status_code=303)
     if not username.strip():
         return RedirectResponse("/users?error=Username+cannot+be+empty", status_code=303)
-    if len(password) < 4:
-        return RedirectResponse("/users?error=Password+must+be+at+least+4+characters", status_code=303)
+    if len(password) < 8:
+        return RedirectResponse("/users?error=Password+must+be+at+least+8+characters", status_code=303)
     existing = queries.get_user_by_username(conn, username.strip())
     if existing:
         return RedirectResponse("/users?error=Username+already+exists", status_code=303)
@@ -53,6 +55,7 @@ def users_edit(
     password: str = Form(""),
     conn=Depends(get_db),
     user=Depends(require_role("admin")),
+    _csrf=Depends(csrf_protect),
 ):
     if role not in VALID_ROLES:
         return RedirectResponse("/users?error=Invalid+role", status_code=303)
@@ -71,6 +74,7 @@ def users_delete(
     user_id: int,
     conn=Depends(get_db),
     user=Depends(require_role("admin")),
+    _csrf=Depends(csrf_protect),
 ):
     if user_id == user["user_id"]:
         return RedirectResponse("/users?error=You+cannot+delete+your+own+account", status_code=303)

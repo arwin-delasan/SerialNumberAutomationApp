@@ -65,6 +65,7 @@
             <p class="text-[12px] font-mono text-gray-800 break-all">{{ discovered }}</p>
           </div>
           <form method="POST" action="/settings/lbl-path">
+            <input type="hidden" name="_csrf" value="{{ request.session.get('csrf_token', '') }}">
             <input type="hidden" name="path" value="{{ discovered }}"/>
             <button type="submit"
                     class="bg-[#6e3f22] hover:bg-[#4d2e17] text-white text-[12px] cursor-pointer font-semibold px-4 py-2 rounded-lg transition-colors">
@@ -74,6 +75,7 @@
         </div>
         {% endif %}
         <form method="POST" action="/settings/discover">
+          <input type="hidden" name="_csrf" value="{{ request.session.get('csrf_token', '') }}">
           <button type="submit"
                   class="flex items-center gap-2 text-[12px] font-medium cursor-pointer text-gray-700 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg transition-colors">
             <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,6 +94,7 @@
         <p class="text-[12px] text-gray-400 mt-0.5">Paste the full absolute path to the .lbl file.</p>
       </div>
       <form method="POST" action="/settings/lbl-path" class="px-6 py-5 space-y-4">
+        <input type="hidden" name="_csrf" value="{{ request.session.get('csrf_token', '') }}">
         <input type="text" name="path"
                value="{{ lbl_state.path or '' }}"
                placeholder="e.g. C:\Users\Operator\Desktop\ZebraAutomated.lbl"

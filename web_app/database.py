@@ -25,16 +25,6 @@ class DatabaseManager:
     # ------------------------------------------------------------------
     def connect(self) -> cnx.MySQLConnection:
         if self._conn is None:
-            base_config = {k: v for k, v in self._config.items() if k != "database"}
-            tmp_conn = mysql.connector.connect(**base_config)
-            tmp_cursor = tmp_conn.cursor()
-            tmp_cursor.execute(
-                f"CREATE DATABASE IF NOT EXISTS `{self._config['database']}`"
-            )
-            tmp_conn.commit()
-            tmp_cursor.close()
-            tmp_conn.close()
-
             self._conn = mysql.connector.connect(**self._config)
         return self._conn
 
@@ -316,6 +306,7 @@ class DatabaseManager:
                 ),
             )
 
+        cursor.execute("DELETE FROM print_queue")
         conn.commit()
         return True
 
@@ -344,5 +335,6 @@ class DatabaseManager:
             "UPDATE serial_counter SET last_issued_serial = %s, last_issued_random = %s WHERE id = 1",
             (row["serial_range_start"] - SERIAL_STEP, row["random_range_start"] - RANDOM_STEP),
         )
+        cursor.execute("DELETE FROM print_queue")
         conn.commit()
         return True

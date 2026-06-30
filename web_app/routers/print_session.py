@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from web_app.auth import require_role
+from web_app.csrf import csrf_protect
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "serial_exporter"))
 from config import SERIAL_STEP, RANDOM_STEP, QUANTITY_WARN_THRESHOLD, SERIAL_COLUMN_HEADER, RANDOM_COLUMN_HEADER, SESSION_TIMEOUT_MINUTES, LBL_PATH, find_lbl_file
@@ -138,6 +139,7 @@ def print_do_start(
     start_random: int = Form(None),
     db=Depends(get_db_manager),
     user=Depends(require_role("view_actions")),
+    _csrf=Depends(csrf_protect),
 ):
     conn = db.connect()
     active = _check_active_session(db, conn)
@@ -148,8 +150,8 @@ def print_do_start(
 
     if qty < 1:
         return RedirectResponse("/print?error=Quantity+must+be+at+least+1", status_code=303)
-    if qty > 20_000:
-        return RedirectResponse("/print?error=Quantity+cannot+exceed+20,000+labels+per+session", status_code=303)
+    if qty > 15_000:
+        return RedirectResponse("/print?error=Quantity+cannot+exceed+15,000+labels+per+session", status_code=303)
 
     if not db.has_counter():
         if not start_serial or not start_random:
@@ -171,8 +173,10 @@ def print_do_start(
     try:
         write_csv(serials, randoms, CSV_PATH)
     except Exception as e:
+        import logging
+        logging.error("CSV write failed for session %s: %s", session["session_id"], e)
         return RedirectResponse(
-            f"/print/confirm/{session['session_id']}?error=CSV+write+failed:+{e}",
+            f"/print/confirm/{session['session_id']}?error=CSV+write+failed",
             status_code=303,
         )
 
@@ -250,6 +254,7 @@ def print_complete(
     session_id: int,
     db=Depends(get_db_manager),
     user=Depends(require_role("view_actions")),
+    _csrf=Depends(csrf_protect),
 ):
     conn = db.connect()
     session = queries.get_session(conn, session_id)
@@ -268,6 +273,7 @@ def print_incomplete(
     last_good_serial: int = Form(...),
     db=Depends(get_db_manager),
     user=Depends(require_role("view_actions")),
+    _csrf=Depends(csrf_protect),
 ):
     conn = db.connect()
     session = queries.get_session(conn, session_id)
@@ -293,6 +299,7 @@ def print_void(
     session_id: int,
     db=Depends(get_db_manager),
     user=Depends(require_role("view_actions")),
+    _csrf=Depends(csrf_protect),
 ):
     conn = db.connect()
     session = queries.get_session(conn, session_id)

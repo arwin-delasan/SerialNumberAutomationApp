@@ -40,15 +40,3 @@ def require_role(min_role: str):
     return dependency
 
 
-def seed_default_admin(db) -> None:
-    """Insert admin/admin if the users table is empty."""
-    conn = db.connect()
-    with conn.cursor(dictionary=True) as cur:
-        cur.execute("SELECT COUNT(*) AS cnt FROM users")
-        if cur.fetchone()["cnt"] == 0:
-            hashed = hash_password("admin")
-            cur.execute(
-                "INSERT INTO users (username, password_hash, role) VALUES (%s, %s, 'admin')",
-                ("admin", hashed)
-            )
-    conn.commit()

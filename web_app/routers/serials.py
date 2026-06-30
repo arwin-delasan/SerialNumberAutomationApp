@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from web_app.auth import require_role
+from web_app.csrf import csrf_protect
 from web_app.dependencies import get_db
 import web_app.queries as queries
 
@@ -55,6 +56,7 @@ def toggle_serial_status(
     row_id: int,
     db=Depends(get_db),
     user=Depends(require_role("view_actions")),
+    _csrf=Depends(csrf_protect),
 ):
     with db.cursor(dictionary=True) as cur:
         cur.execute("SELECT status FROM session_rows WHERE row_id = %s", (row_id,))

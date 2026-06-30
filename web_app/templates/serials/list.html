@@ -292,7 +292,10 @@
     applyStatus(btn, newStatus);
     btn.onclick = () => toggleStatus(btn, rowId, newStatus);
     try {
-      const resp = await fetch(`/serials/${rowId}/toggle-status`, { method: 'POST' });
+      const resp = await fetch(`/serials/${rowId}/toggle-status`, {
+        method: 'POST',
+        headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
+      });
       if (!resp.ok) throw new Error();
     } catch {
       applyStatus(btn, currentStatus);

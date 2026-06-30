@@ -7,9 +7,7 @@
   <!-- Top bar -->
   <div class="shrink-0 border-b border-gray-200 bg-white px-5 py-3 flex items-center justify-between gap-4">
     <div class="flex items-center gap-3">
-      <code class="text-[11px] text-gray-500 bg-gray-100 px-2.5 py-1 rounded font-mono">
-        SELECT * FROM serial_tracker.users
-      </code>
+      <h1 class="text-sm font-semibold text-gray-800">Users</h1>
       {% if error %}
       <span class="text-[12px] text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-lg">{{ error }}</span>
       {% endif %}
@@ -102,6 +100,7 @@
     </div>
     <form id="userForm" method="POST" action="/users/create">
       <input type="hidden" id="modalUserId" name="_user_id" />
+      <input type="hidden" name="_csrf" value="{{ request.session.get('csrf_token', '') }}">
       <div class="px-5 py-4 space-y-4">
         <div class="space-y-1.5">
           <label class="block text-[11px] font-medium text-gray-600">Username</label>
@@ -112,6 +111,7 @@
             required
             class="w-full border border-gray-300 rounded-lg px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
+          <p id="usernameError" class="hidden text-[11px] text-red-500"></p>
         </div>
         <div class="space-y-1.5">
           <label class="block text-[11px] font-medium text-gray-600">Role</label>
@@ -133,6 +133,7 @@
             type="password"
             class="w-full border border-gray-300 rounded-lg px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
+          <p id="passwordError" class="hidden text-[11px] text-red-500"></p>
         </div>
       </div>
       <div class="px-5 py-3 border-t border-gray-100 flex justify-end gap-2">
@@ -171,6 +172,7 @@
       </div>
     </div>
     <form id="deleteForm" method="POST">
+      <input type="hidden" name="_csrf" value="{{ request.session.get('csrf_token', '') }}">
       <div class="px-5 py-3 border-t border-gray-100 flex justify-end gap-2">
         <button
           type="button"
@@ -191,14 +193,21 @@
 </div>
 
 <script>
+  function clearModalErrors() {
+    document.getElementById('usernameError').classList.add('hidden');
+    document.getElementById('passwordError').classList.add('hidden');
+  }
+
   function openCreateModal() {
     document.getElementById('modalTitle').textContent = 'Add User';
     document.getElementById('userForm').action = '/users/create';
     document.getElementById('modalUserId').value = '';
     document.getElementById('modalUsername').value = '';
     document.getElementById('modalRole').value = 'view_only';
+    document.getElementById('modalPassword').value = '';
     document.getElementById('modalPassword').placeholder = 'Password';
     document.getElementById('modalPassword').required = true;
+    clearModalErrors();
     showModal('userModal');
     document.getElementById('modalUsername').focus();
   }
@@ -212,9 +221,36 @@
     document.getElementById('modalPassword').value = '';
     document.getElementById('modalPassword').placeholder = 'Leave blank to keep current';
     document.getElementById('modalPassword').required = false;
+    clearModalErrors();
     showModal('userModal');
     document.getElementById('modalUsername').focus();
   }
+
+  document.getElementById('userForm').addEventListener('submit', function(e) {
+    clearModalErrors();
+    const isCreate = this.action.includes('/create');
+    const username = document.getElementById('modalUsername').value.trim();
+    const password = document.getElementById('modalPassword').value;
+    let valid = true;
+
+    if (!username) {
+      document.getElementById('usernameError').textContent = 'Username cannot be empty';
+      document.getElementById('usernameError').classList.remove('hidden');
+      valid = false;
+    }
+
+    if (isCreate && password.length < 8) {
+      document.getElementById('passwordError').textContent = 'Password must be at least 8 characters';
+      document.getElementById('passwordError').classList.remove('hidden');
+      valid = false;
+    } else if (!isCreate && password && password.length < 8) {
+      document.getElementById('passwordError').textContent = 'Password must be at least 8 characters';
+      document.getElementById('passwordError').classList.remove('hidden');
+      valid = false;
+    }
+
+    if (!valid) e.preventDefault();
+  });
 
   function openDeleteModal(id, username) {
     document.getElementById('deleteMessage').textContent = 'Are you sure you want to delete "' + username + '"?';

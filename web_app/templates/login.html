@@ -31,6 +31,7 @@
 
     <form method="POST" action="/login" class="space-y-4">
       <input type="hidden" name="next" value="{{ next }}" />
+      <input type="hidden" name="_csrf" value="{{ request.session.get('csrf_token', '') }}">
 
       <div class="space-y-1.5">
         <label class="block text-[12px] font-medium text-gray-700">Username</label>
@@ -67,6 +68,7 @@
 
 <script>
   document.addEventListener('submit', function(e) {
+    if (e.defaultPrevented) return;
     e.target.querySelectorAll('[type="submit"]').forEach(function(btn) {
       btn.disabled = true;
       btn.classList.add('opacity-50', 'cursor-not-allowed');
