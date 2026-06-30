@@ -27,6 +27,10 @@
   <div class="px-6 py-5 border-b border-gray-100 bg-white">
     <div class="grid grid-cols-3 gap-x-8 gap-y-4 text-[12px]">
       <div>
+        <p class="text-gray-400 font-medium mb-0.5">Manufacturing Order</p>
+        <p class="font-mono text-gray-800 font-semibold">{{ session.mo_number or "—" }}</p>
+      </div>
+      <div>
         <p class="text-gray-400 font-medium mb-0.5">Serial Range</p>
         <p class="font-mono text-gray-800 font-semibold">{{ "{:,}".format(session.serial_range_start) }} – {{ "{:,}".format(session.serial_range_end) }}</p>
       </div>
@@ -63,7 +67,7 @@
   <div class="px-6 pt-5">
     <div class="flex items-center justify-between mb-3">
       <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-        Printed Rows{% if rows %} ({{ "{:,}".format(rows|length) }}){% endif %}
+        Printed Rows{% if total_rows %} ({{ "{:,}".format(total_rows) }}){% endif %}
       </p>
       {% if rows %}
       <a href="/export/download?start_serial={{ session.serial_range_start }}&end_serial={{ session.serial_range_end }}"
@@ -93,7 +97,7 @@
         <tbody class="divide-y divide-gray-100">
           {% for row in rows %}
           <tr class="hover:bg-gray-50">
-            <td class="px-3 py-1.5 text-right text-gray-300 border-r border-gray-100 tabular-nums select-none text-[11px]">{{ loop.index }}</td>
+            <td class="px-3 py-1.5 text-right text-gray-300 border-r border-gray-100 tabular-nums select-none text-[11px]">{{ (page - 1) * 100 + loop.index }}</td>
             <td class="px-4 py-1.5 font-mono text-gray-800 border-r border-gray-100 tabular-nums">{{ "{:,}".format(row.serial_number) }}</td>
             <td class="px-4 py-1.5 font-mono text-gray-600 tabular-nums">{{ "{:,}".format(row.random_number) }}</td>
           </tr>
@@ -104,6 +108,29 @@
       <p class="px-4 py-8 text-center text-gray-400 text-[12px]">No rows recorded for this session.</p>
       {% endif %}
     </div>
+
+    {% if total_pages > 1 %}
+    <div class="flex items-center justify-between py-3 text-[12px] text-gray-500 mb-6">
+      <span>
+        Showing {{ "{:,}".format((page - 1) * 100 + 1) }}–{{ "{:,}".format([(page * 100), total_rows] | min) }} of {{ "{:,}".format(total_rows) }}
+      </span>
+      <div class="flex items-center gap-1">
+        {% if page > 1 %}
+          <a href="/sessions/{{ session.session_id }}?page={{ page - 1 }}"
+             class="px-2.5 py-1 rounded border border-gray-200 hover:bg-gray-50">← Prev</a>
+        {% else %}
+          <span class="px-2.5 py-1 rounded border border-gray-100 text-gray-300 cursor-not-allowed">← Prev</span>
+        {% endif %}
+        <span class="px-2.5 py-1 text-gray-500">{{ page }} / {{ total_pages }}</span>
+        {% if page < total_pages %}
+          <a href="/sessions/{{ session.session_id }}?page={{ page + 1 }}"
+             class="px-2.5 py-1 rounded border border-gray-200 hover:bg-gray-50">Next →</a>
+        {% else %}
+          <span class="px-2.5 py-1 rounded border border-gray-100 text-gray-300 cursor-not-allowed">Next →</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
   </div>
 
 </div>

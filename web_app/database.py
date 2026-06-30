@@ -135,6 +135,15 @@ class DatabaseManager:
             conn.commit()
         except Exception:
             conn.rollback()
+        # Migrate: add print_sessions.mo_number if missing
+        try:
+            cursor.execute("""
+                ALTER TABLE print_sessions
+                ADD COLUMN mo_number VARCHAR(100)
+            """)
+            conn.commit()
+        except Exception:
+            conn.rollback()
         # Index: session_rows.serial_number (range exports, serial lookups)
         try:
             cursor.execute("CREATE INDEX idx_session_rows_serial ON session_rows (serial_number)")
@@ -148,6 +157,20 @@ class DatabaseManager:
         except Exception:
             conn.rollback()
         conn.commit()
+
+        # Seed default admin if no users exist
+        cursor.execute("SELECT COUNT(*) FROM users")
+        if cursor.fetchone()[0] == 0:
+            from web_app.auth import hash_password
+            import os
+            default_password = os.environ.get("DEFAULT_ADMIN_PASSWORD", "admin1234")
+            cursor.execute(
+                "INSERT INTO users (username, password_hash, role) VALUES (%s, %s, 'admin')",
+                ("admin", hash_password(default_password)),
+            )
+            conn.commit()
+            print(f"[init] Default admin created — username: admin  password: {default_password}")
+            print("[init] Change this password immediately via /users after first login.")
 
     # ------------------------------------------------------------------
     def has_counter(self) -> bool:
@@ -199,7 +222,7 @@ class DatabaseManager:
         return last_random + RANDOM_STEP
 
     # ------------------------------------------------------------------
-    def reserve_range(self, qty: int, user_id: int = None) -> dict:
+    def reserve_range(self, qty: int, user_id: int = None, mo_number: str = None) -> dict:
         from config import SERIAL_STEP, RANDOM_STEP
 
         conn = self.connect()
@@ -226,9 +249,9 @@ class DatabaseManager:
                 """INSERT INTO print_sessions
                    (serial_range_start, serial_range_end,
                     random_range_start, random_range_end,
-                    quantity_requested, status, started_by_user_id)
-                   VALUES (%s, %s, %s, %s, %s, 'issued', %s)""",
-                (serial_start, serial_end, random_start, random_end, qty, user_id),
+                    quantity_requested, status, started_by_user_id, mo_number)
+                   VALUES (%s, %s, %s, %s, %s, 'issued', %s, %s)""",
+                (serial_start, serial_end, random_start, random_end, qty, user_id, mo_number),
             )
             session_id = cursor.lastrowid
 
@@ -254,6 +277,7 @@ class DatabaseManager:
             "random_range_start": random_start,
             "random_range_end": random_end,
             "quantity_requested": qty,
+            "mo_number": mo_number,
         }
 
     # ------------------------------------------------------------------
@@ -264,7 +288,7 @@ class DatabaseManager:
         cursor = conn.cursor(dictionary=True)
         cursor.execute(
             "SELECT serial_range_start, serial_range_end, random_range_start "
-            "FROM print_sessions WHERE session_id = %s",
+            "FROM print_sessions WHERE session_id = %s AND status = 'issued' FOR UPDATE",
             (session_id,),
         )
         row = cursor.fetchone()

@@ -135,6 +135,7 @@ def print_start(
 @router.post("/start")
 def print_do_start(
     qty: int = Form(...),
+    mo_number: str = Form(...),
     start_serial: int = Form(None),
     start_random: int = Form(None),
     db=Depends(get_db_manager),
@@ -161,7 +162,7 @@ def print_do_start(
         db.seed_counters(start_serial, start_random)
 
     try:
-        session = db.reserve_range(qty, user_id=user["user_id"])
+        session = db.reserve_range(qty, user_id=user["user_id"], mo_number=mo_number)
     except RuntimeError:
         conn = db.connect()
         active = queries.get_active_session(conn)

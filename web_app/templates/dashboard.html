@@ -75,6 +75,7 @@
         <thead class="bg-gray-50 border-b border-gray-200">
           <tr>
             <th class="px-4 py-2 text-left text-gray-500 font-medium">ID</th>
+            <th class="px-4 py-2 text-left text-gray-500 font-medium">MO</th>
             <th class="px-4 py-2 text-left text-gray-500 font-medium">Serial Range</th>
             <th class="px-4 py-2 text-left text-gray-500 font-medium">Qty</th>
             <th class="px-4 py-2 text-left text-gray-500 font-medium">Status</th>
@@ -85,6 +86,7 @@
           {% for s in recent %}
           <tr class="hover:bg-gray-50 cursor-pointer" onclick="location.href='/sessions/{{ s.session_id }}'">
             <td class="px-4 py-2 font-mono text-gray-400">#{{ s.session_id }}</td>
+            <td class="px-4 py-2 font-mono text-gray-700">{{ s.mo_number or "—" }}</td>
             <td class="px-4 py-2 font-mono text-gray-700">{{ "{:,}".format(s.serial_range_start) }} – {{ "{:,}".format(s.serial_range_end) }}</td>
             <td class="px-4 py-2 text-gray-600">{{ "{:,}".format(s.quantity_requested) }}</td>
             <td class="px-4 py-2">
@@ -104,7 +106,13 @@
         </tbody>
       </table>
       {% else %}
-      <p class="px-4 py-8 text-center text-gray-400 text-[12px]">No sessions yet.</p>
+      <div class="flex flex-col items-center gap-2 py-10">
+        <svg class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+        </svg>
+        <p class="text-[12px] font-medium text-gray-500">No sessions yet</p>
+        <p class="text-[11px] text-gray-400">Start a print session to see recent activity here.</p>
+      </div>
       {% endif %}
     </div>
   </div>

@@ -23,26 +23,21 @@
   </a>
 </div>
 
-<div class="flex-1 overflow-y-auto p-8 flex items-start justify-center">
-  <div class="w-full max-w-lg space-y-5">
+<div class="flex-1 overflow-y-auto p-8">
+  {% if error %}
+  <div class="bg-red-50 border border-red-200 text-red-700 text-[12px] rounded-lg px-4 py-3 mb-5">
+    {{ error }}
+  </div>
+  {% endif %}
 
-    {% if error %}
-    <div class="bg-red-50 border border-red-200 text-red-700 text-[12px] rounded-lg px-4 py-3">
-      {{ error }}
-    </div>
-    {% endif %}
+  <div class="grid mx-auto" style="grid-template-columns: 260px 1fr; max-width: 75%; gap: 2rem;">
 
-    {% if age_minutes >= timeout_minutes - 5 %}
-    <div class="bg-orange-50 border border-orange-200 text-orange-800 text-[12px] rounded-lg px-4 py-3 flex items-start gap-2">
-      <svg class="w-4 h-4 shrink-0 mt-0.5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-      </svg>
-      <span>This session has been open for <strong>{{ age_minutes }} min</strong> and will be auto-cancelled at {{ timeout_minutes }} min. Complete or cancel it soon.</span>
-    </div>
-    {% endif %}
-
-    <!-- Session info cards -->
-    <div class="grid grid-cols-4 gap-3">
+    <!-- Left column: session info -->
+    <div class="space-y-3">
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <p class="text-[11px] text-gray-400 font-medium mb-1">Manufacturing Order</p>
+        <p class="text-lg font-mono font-bold text-gray-900">{{ session.mo_number or "—" }}</p>
+      </div>
       <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
         <p class="text-[11px] text-gray-400 font-medium mb-1">Serials</p>
         <p class="text-sm font-mono font-bold text-gray-900">{{ "{:,}".format(session.serial_range_start) }}</p>
@@ -56,101 +51,102 @@
         <p class="text-[11px] text-gray-400 font-medium mb-1">Session ID</p>
         <p class="text-2xl font-mono font-bold text-gray-900">#{{ session.session_id }}</p>
       </div>
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-        <p class="text-[11px] text-gray-400 font-medium mb-1">Open for</p>
-        <p class="text-2xl font-mono font-bold {% if age_minutes >= timeout_minutes - 5 %}text-orange-500{% else %}text-gray-900{% endif %}">{{ age_minutes }}m</p>
-      </div>
     </div>
 
-    <!-- ZebraDesigner instructions -->
-    <div class="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4">
-      <div class="flex items-start gap-3">
-        <div class="mt-0.5 shrink-0 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
-          <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01"/>
-          </svg>
-        </div>
-        <div>
-          <p class="text-[12px] font-semibold text-blue-800 mb-1.5">Printing Instructions</p>
-          <ol class="text-[12px] text-blue-700 space-y-1 list-decimal list-inside">
-            <li>Open <span class="font-mono font-semibold">ZebraDesigner Pro 2</span></li>
-            <li>Load label file: <span class="font-mono font-semibold">ZebraAutomated.lbl</span></li>
-            <li>Print <span class="font-mono font-semibold">{{ "{:,}".format(session.quantity_requested) }}</span> labels</li>
-          </ol>
-        </div>
-      </div>
-    </div>
+    <!-- Right column: instructions + actions -->
+    <div class="space-y-4">
 
-    <!-- Action panel -->
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-      <div class="px-5 py-4 border-b border-gray-100 bg-gray-50">
-        <p class="text-[12px] font-semibold text-gray-700">After printing, mark this session as:</p>
-      </div>
-
-      <div class="px-5 py-5 space-y-3">
-
-        <!-- Complete -->
-        <form method="POST" action="/print/complete/{{ session.session_id }}">
-          <input type="hidden" name="_csrf" value="{{ request.session.get('csrf_token', '') }}">
-          <button id="completeBtn" type="button" onclick="openCompleteModal()"
-                  class="w-full flex items-center justify-between cursor-pointer bg-green-600 hover:bg-green-700 text-white text-[13px] font-semibold px-4 py-3 rounded-lg transition-colors">
-            <span class="flex items-center gap-2">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-              </svg>
-              Complete — all {{ "{:,}".format(session.quantity_requested) }} labels printed
-            </span>
-            <span class="text-green-200 text-[11px]">Confirms full range</span>
-          </button>
-        </form>
-
-        <!-- Incomplete -->
-        <div class="border border-yellow-200 rounded-lg overflow-hidden">
-          <button id="incompleteToggleBtn" type="button" onclick="toggleIncomplete()"
-                  class="w-full flex items-center justify-between cursor-pointer bg-yellow-50 hover:bg-yellow-100 text-yellow-800 text-[13px] font-semibold px-4 py-3 transition-colors">
-            <span class="flex items-center gap-2">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-              Incomplete — stopped early
-            </span>
-            <svg id="incompleteChevron" class="w-4 h-4 text-yellow-600 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+      <!-- ZebraDesigner instructions -->
+      <div class="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4">
+        <div class="flex items-start gap-3">
+          <div class="mt-0.5 shrink-0 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01"/>
             </svg>
-          </button>
-          <div id="incompleteForm" class="hidden border-t border-yellow-200 bg-white px-4 py-4">
-            <form method="POST" action="/print/incomplete/{{ session.session_id }}" class="space-y-3">
-              <input type="hidden" name="_csrf" value="{{ request.session.get('csrf_token', '') }}">
-              <div>
-                <label class="block text-[12px] font-medium text-gray-700 mb-1.5">
-                  Last successfully printed serial number
-                </label>
-                <input type="number" name="last_good_serial" required
-                       min="{{ session.serial_range_start }}" max="{{ session.serial_range_end }}"
-                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-[13px] font-mono focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
-                       placeholder="{{ session.serial_range_start }}"/>
-                <p class="text-[11px] text-gray-400 mt-1">
-                  Range: {{ "{:,}".format(session.serial_range_start) }} – {{ "{:,}".format(session.serial_range_end) }}
-                </p>
-              </div>
-              <button id="incompleteSubmitBtn" type="button" onclick="openIncompleteModal()"
-                      class="w-full bg-yellow-500 hover:bg-yellow-600 text-white text-[13px] cursor-pointer font-semibold py-2 rounded-lg transition-colors">
-                Confirm Incomplete
-              </button>
-            </form>
+          </div>
+          <div>
+            <p class="text-[12px] font-semibold text-blue-800 mb-1.5">Printing Instructions</p>
+            <ol class="text-[12px] text-blue-700 space-y-1 list-decimal list-inside">
+              <li>Open <span class="font-mono font-semibold">ZebraDesigner Pro 2</span></li>
+              <li>Load label file: <span class="font-mono font-semibold">ZebraAutomated.lbl</span></li>
+              <li>Print <span class="font-mono font-semibold">{{ "{:,}".format(session.quantity_requested) }}</span> labels</li>
+            </ol>
           </div>
         </div>
-
-        <!-- Void / Cancel -->
-        <button id="cancelSessionBtn" type="button" onclick="openVoidModal()"
-                class="w-full flex items-center justify-center gap-2 cursor-pointer border border-gray-300 hover:bg-red-50 hover:border-red-300 hover:text-red-700 text-gray-600 text-[13px] font-medium px-4 py-2.5 rounded-lg transition-colors">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
-          Cancel Session
-        </button>
-
       </div>
+
+      <!-- Action panel -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-100 bg-gray-50">
+          <p class="text-[12px] font-semibold text-gray-700">After printing, mark this session as:</p>
+        </div>
+
+        <div class="px-5 py-5 space-y-3">
+
+          <!-- Complete -->
+          <form method="POST" action="/print/complete/{{ session.session_id }}">
+            <input type="hidden" name="_csrf" value="{{ request.session.get('csrf_token', '') }}">
+            <button id="completeBtn" type="button" onclick="openCompleteModal()"
+                    class="w-full flex items-center justify-between cursor-pointer bg-green-600 hover:bg-green-700 text-white text-[13px] font-semibold px-4 py-3 rounded-lg transition-colors">
+              <span class="flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                </svg>
+                Complete — all {{ "{:,}".format(session.quantity_requested) }} labels printed
+              </span>
+              <span class="text-green-200 text-[11px]">Confirms full range</span>
+            </button>
+          </form>
+
+          <!-- Incomplete -->
+          <div class="border border-yellow-200 rounded-lg overflow-hidden">
+            <button id="incompleteToggleBtn" type="button" onclick="toggleIncomplete()"
+                    class="w-full flex items-center justify-between cursor-pointer bg-yellow-50 hover:bg-yellow-100 text-yellow-800 text-[13px] font-semibold px-4 py-3 transition-colors">
+              <span class="flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Incomplete — stopped early
+              </span>
+              <svg id="incompleteChevron" class="w-4 h-4 text-yellow-600 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
+            <div id="incompleteForm" class="hidden border-t border-yellow-200 bg-white px-4 py-4">
+              <form method="POST" action="/print/incomplete/{{ session.session_id }}" class="space-y-3">
+                <input type="hidden" name="_csrf" value="{{ request.session.get('csrf_token', '') }}">
+                <div>
+                  <label class="block text-[12px] font-medium text-gray-700 mb-1.5">
+                    Last successfully printed serial number
+                  </label>
+                  <input type="number" name="last_good_serial" required
+                         min="{{ session.serial_range_start }}" max="{{ session.serial_range_end }}"
+                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-[13px] font-mono focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                         placeholder="{{ session.serial_range_start }}"/>
+                  <p class="text-[11px] text-gray-400 mt-1">
+                    Range: {{ "{:,}".format(session.serial_range_start) }} – {{ "{:,}".format(session.serial_range_end) }}
+                  </p>
+                </div>
+                <button id="incompleteSubmitBtn" type="button" onclick="openIncompleteModal()"
+                        class="w-full bg-yellow-500 hover:bg-yellow-600 text-white text-[13px] cursor-pointer font-semibold py-2 rounded-lg transition-colors">
+                  Confirm Incomplete
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Void / Cancel -->
+          <button id="cancelSessionBtn" type="button" onclick="openVoidModal()"
+                  class="w-full flex items-center justify-center gap-2 cursor-pointer border border-gray-300 hover:bg-red-50 hover:border-red-300 hover:text-red-700 text-gray-600 text-[13px] font-medium px-4 py-2.5 rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+            Cancel Session
+          </button>
+
+        </div>
+      </div>
+
     </div>
 
   </div>
