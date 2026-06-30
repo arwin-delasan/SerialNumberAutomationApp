@@ -355,10 +355,21 @@ class DatabaseManager:
                WHERE session_id = %s""",
             (session_id,),
         )
+
+        # If there are no other non-voided sessions, remove the counter entirely
+        # so the dashboard shows "not initialized" rather than a misleading value.
         cursor.execute(
-            "UPDATE serial_counter SET last_issued_serial = %s, last_issued_random = %s WHERE id = 1",
-            (row["serial_range_start"] - SERIAL_STEP, row["random_range_start"] - RANDOM_STEP),
+            "SELECT COUNT(*) AS cnt FROM print_sessions WHERE status != 'voided'"
         )
+        remaining = cursor.fetchone()["cnt"]
+        if remaining == 0:
+            cursor.execute("DELETE FROM serial_counter WHERE id = 1")
+        else:
+            cursor.execute(
+                "UPDATE serial_counter SET last_issued_serial = %s, last_issued_random = %s WHERE id = 1",
+                (row["serial_range_start"] - SERIAL_STEP, row["random_range_start"] - RANDOM_STEP),
+            )
+
         cursor.execute("DELETE FROM print_queue")
         conn.commit()
         return True

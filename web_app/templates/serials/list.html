@@ -221,13 +221,20 @@
     {% else %}
       <span class="px-2.5 py-1 rounded border border-gray-100 text-gray-300 cursor-not-allowed">← Prev</span>
     {% endif %}
-    <span class="px-2.5 py-1 text-gray-500">{{ page }} / {{ total_pages }}</span>
+    <span class="px-1 text-gray-500">{{ page }} / {{ total_pages }}</span>
     {% if page < total_pages %}
       <a href="/serials?sort={{ sort }}&page={{ page + 1 }}{{ filter_qs }}"
          class="px-2.5 py-1 rounded border border-gray-200 hover:bg-gray-50">Next →</a>
     {% else %}
       <span class="px-2.5 py-1 rounded border border-gray-100 text-gray-300 cursor-not-allowed">Next →</span>
     {% endif %}
+    <span class="w-px h-4 bg-gray-200 mx-1"></span>
+    <span class="text-gray-400">Go to</span>
+    <input id="serialsPageJumper" type="number" min="1" max="{{ total_pages }}"
+           data-max="{{ total_pages }}" data-sort="{{ sort }}" data-filter="{{ filter_qs }}"
+           class="w-12 px-1.5 py-0.5 rounded border border-gray-300 text-center text-[12px] focus:outline-none focus:ring-1 focus:ring-[#6e3f22] focus:border-[#6e3f22]"
+           placeholder="{{ page }}">
+    <button onclick="serialsJumpPage()" class="px-2 py-0.5 rounded border border-gray-300 hover:bg-gray-50 cursor-pointer">→</button>
   </div>
 </div>
 
@@ -394,6 +401,22 @@
 </div>
 
 <script>
+  function serialsJumpPage() {
+    var input = document.getElementById('serialsPageJumper');
+    var n = parseInt(input.value, 10);
+    var max = parseInt(input.dataset.max, 10);
+    if (isNaN(n) || n < 1 || n > max) {
+      input.classList.add('border-red-400');
+      input.focus();
+      return;
+    }
+    input.classList.remove('border-red-400');
+    window.location.href = '/serials?sort=' + input.dataset.sort + '&page=' + n + input.dataset.filter;
+  }
+  document.getElementById('serialsPageJumper').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') serialsJumpPage();
+  });
+
   const MIN_SERIAL   = {{ min_serial or 'null' }};
   const MAX_SERIAL   = {{ max_serial or 'null' }};
 
