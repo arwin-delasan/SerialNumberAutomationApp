@@ -1,11 +1,11 @@
 def get_counter_state(conn):
-    with conn.cursor(dictionary=True) as cur:
+    with conn.cursor() as cur:
         cur.execute("SELECT last_issued_serial, last_issued_random FROM serial_counter WHERE id = 1")
         return cur.fetchone()
 
 
 def get_dashboard_stats(conn):
-    with conn.cursor(dictionary=True) as cur:
+    with conn.cursor() as cur:
         cur.execute("""
             SELECT
                 COUNT(*) AS total,
@@ -19,9 +19,9 @@ def get_dashboard_stats(conn):
 
 
 def get_recent_sessions(conn, limit=10):
-    with conn.cursor(dictionary=True) as cur:
+    with conn.cursor() as cur:
         cur.execute(
-            "SELECT * FROM print_sessions ORDER BY created_at DESC LIMIT %s",
+            "SELECT * FROM print_sessions ORDER BY created_at DESC LIMIT ?",
             (limit,)
         )
         return cur.fetchall()
@@ -33,21 +33,21 @@ def list_sessions(conn, page: int, page_size: int, search: str = None, status_fi
     conditions = []
     params = []
     if search:
-        conditions.append("(ps.mo_number LIKE %s OR u.username LIKE %s)")
+        conditions.append("(ps.mo_number LIKE ? OR u.username LIKE ?)")
         like = f"%{search}%"
         params.extend([like, like])
     if status_filter in ("issued", "confirmed", "partial", "voided"):
-        conditions.append("ps.status = %s")
+        conditions.append("ps.status = ?")
         params.append(status_filter)
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-    with conn.cursor(dictionary=True) as cur:
+    with conn.cursor() as cur:
         cur.execute(f"""
             SELECT ps.*, u.username AS started_by_username
             FROM print_sessions ps
             LEFT JOIN users u ON ps.started_by_user_id = u.user_id
             {where}
             ORDER BY ps.session_id {order}
-            LIMIT %s OFFSET %s
+            LIMIT ? OFFSET ?
         """, (*params, page_size, offset))
         rows = cur.fetchall()
         cur.execute(f"""
@@ -61,26 +61,26 @@ def list_sessions(conn, page: int, page_size: int, search: str = None, status_fi
 
 
 def get_active_session(conn):
-    with conn.cursor(dictionary=True) as cur:
+    with conn.cursor() as cur:
         cur.execute("SELECT * FROM print_sessions WHERE status = 'issued' ORDER BY session_id DESC LIMIT 1")
         return cur.fetchone()
 
 
 def get_session(conn, session_id: int):
-    with conn.cursor(dictionary=True) as cur:
+    with conn.cursor() as cur:
         cur.execute("""
             SELECT ps.*, u.username AS started_by_username
             FROM print_sessions ps
             LEFT JOIN users u ON ps.started_by_user_id = u.user_id
-            WHERE ps.session_id = %s
+            WHERE ps.session_id = ?
         """, (session_id,))
         return cur.fetchone()
 
 
 def get_session_rows(conn, session_id: int):
-    with conn.cursor(dictionary=True) as cur:
+    with conn.cursor() as cur:
         cur.execute(
-            "SELECT row_id, serial_number, random_number FROM session_rows WHERE session_id = %s ORDER BY serial_number",
+            "SELECT row_id, serial_number, random_number FROM session_rows WHERE session_id = ? ORDER BY serial_number",
             (session_id,)
         )
         return cur.fetchall()
@@ -88,19 +88,19 @@ def get_session_rows(conn, session_id: int):
 
 def get_session_rows_paged(conn, session_id: int, page: int, page_size: int):
     offset = (page - 1) * page_size
-    with conn.cursor(dictionary=True) as cur:
-        cur.execute("SELECT COUNT(*) AS cnt FROM session_rows WHERE session_id = %s", (session_id,))
+    with conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) AS cnt FROM session_rows WHERE session_id = ?", (session_id,))
         total = cur.fetchone()["cnt"]
         cur.execute(
             "SELECT row_id, serial_number, random_number FROM session_rows "
-            "WHERE session_id = %s ORDER BY serial_number LIMIT %s OFFSET %s",
+            "WHERE session_id = ? ORDER BY serial_number LIMIT ? OFFSET ?",
             (session_id, page_size, offset),
         )
         return cur.fetchall(), total
 
 
 def get_serial_bounds(conn):
-    with conn.cursor(dictionary=True) as cur:
+    with conn.cursor() as cur:
         cur.execute("""
             SELECT MIN(sr.serial_number) AS min_serial,
                    MAX(sr.serial_number) AS max_serial
@@ -114,7 +114,7 @@ def get_serial_bounds(conn):
 def update_serial_status(conn, row_id: int, status: str) -> bool:
     with conn.cursor() as cur:
         cur.execute(
-            "UPDATE session_rows SET status = %s WHERE row_id = %s",
+            "UPDATE session_rows SET status = ? WHERE row_id = ?",
             (status, row_id),
         )
     conn.commit()
@@ -126,22 +126,26 @@ def bulk_update_serial_status(conn, ranges: list, serials: list, status: str) ->
     with conn.cursor() as cur:
         for r in ranges:
             cur.execute(
-                """UPDATE session_rows sr
-                   JOIN print_sessions ps ON sr.session_id = ps.session_id
-                   SET sr.status = %s
-                   WHERE sr.serial_number BETWEEN %s AND %s
-                     AND ps.status IN ('confirmed', 'partial')""",
+                """UPDATE session_rows
+                   SET status = ?
+                   WHERE serial_number BETWEEN ? AND ?
+                     AND session_id IN (
+                         SELECT session_id FROM print_sessions
+                         WHERE status IN ('confirmed', 'partial')
+                     )""",
                 (status, r["start"], r["end"]),
             )
             affected += cur.rowcount
         if serials:
-            placeholders = ",".join(["%s"] * len(serials))
+            placeholders = ",".join(["?"] * len(serials))
             cur.execute(
-                f"""UPDATE session_rows sr
-                    JOIN print_sessions ps ON sr.session_id = ps.session_id
-                    SET sr.status = %s
-                    WHERE sr.serial_number IN ({placeholders})
-                      AND ps.status IN ('confirmed', 'partial')""",
+                f"""UPDATE session_rows
+                    SET status = ?
+                    WHERE serial_number IN ({placeholders})
+                      AND session_id IN (
+                          SELECT session_id FROM print_sessions
+                          WHERE status IN ('confirmed', 'partial')
+                      )""",
                 [status, *serials],
             )
             affected += cur.rowcount
@@ -159,22 +163,22 @@ def list_all_serials(conn, page: int, page_size: int, sort: str = "desc",
     conditions = ["ps.status IN ('confirmed', 'partial')"]
     params = []
     if search:
-        conditions.append("(CAST(sr.serial_number AS CHAR) LIKE %s OR CAST(sr.random_number AS CHAR) LIKE %s)")
+        conditions.append("(CAST(sr.serial_number AS TEXT) LIKE ? OR CAST(sr.random_number AS TEXT) LIKE ?)")
         like = f"%{search}%"
         params.extend([like, like])
     if status_filter in ("used", "unused"):
-        conditions.append("sr.status = %s")
+        conditions.append("sr.status = ?")
         params.append(status_filter)
     where = " AND ".join(conditions)
 
-    with conn.cursor(dictionary=True) as cur:
+    with conn.cursor() as cur:
         cur.execute(f"""
             SELECT sr.row_id, sr.serial_number, sr.random_number, sr.session_id, sr.status AS serial_status
             FROM session_rows sr
             JOIN print_sessions ps ON sr.session_id = ps.session_id
             WHERE {where}
             ORDER BY sr.serial_number {order}
-            LIMIT %s OFFSET %s
+            LIMIT ? OFFSET ?
         """, (*params, page_size, offset))
         rows = cur.fetchall()
         cur.execute(f"""
@@ -188,13 +192,13 @@ def list_all_serials(conn, page: int, page_size: int, sort: str = "desc",
 
 
 def get_confirmed_rows_in_range(conn, start_serial: int, end_serial: int, status_filter: str = None):
-    conditions = ["sr.serial_number BETWEEN %s AND %s", "ps.status IN ('confirmed', 'partial')"]
+    conditions = ["sr.serial_number BETWEEN ? AND ?", "ps.status IN ('confirmed', 'partial')"]
     params = [start_serial, end_serial]
     if status_filter in ("used", "unused"):
-        conditions.append("sr.status = %s")
+        conditions.append("sr.status = ?")
         params.append(status_filter)
     where = " AND ".join(conditions)
-    with conn.cursor(dictionary=True) as cur:
+    with conn.cursor() as cur:
         cur.execute(f"""
             SELECT DISTINCT sr.serial_number, sr.random_number
             FROM session_rows sr
@@ -214,25 +218,25 @@ def get_confirmed_rows_in_range(conn, start_serial: int, end_serial: int, status
 # ---------------------------------------------------------------------------
 
 def get_user_by_username(conn, username: str):
-    with conn.cursor(dictionary=True) as cur:
+    with conn.cursor() as cur:
         cur.execute(
-            "SELECT user_id, username, password_hash, role FROM users WHERE username = %s",
+            "SELECT user_id, username, password_hash, role FROM users WHERE username = ?",
             (username,)
         )
         return cur.fetchone()
 
 
 def get_user_by_id(conn, user_id: int):
-    with conn.cursor(dictionary=True) as cur:
+    with conn.cursor() as cur:
         cur.execute(
-            "SELECT user_id, username, role FROM users WHERE user_id = %s",
+            "SELECT user_id, username, role FROM users WHERE user_id = ?",
             (user_id,)
         )
         return cur.fetchone()
 
 
 def list_users(conn):
-    with conn.cursor(dictionary=True) as cur:
+    with conn.cursor() as cur:
         cur.execute(
             "SELECT user_id, username, role, created_at FROM users ORDER BY created_at"
         )
@@ -242,7 +246,7 @@ def list_users(conn):
 def create_user(conn, username: str, password_hash: str, role: str):
     with conn.cursor() as cur:
         cur.execute(
-            "INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s)",
+            "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
             (username, password_hash, role)
         )
     conn.commit()
@@ -252,12 +256,12 @@ def update_user(conn, user_id: int, username: str, role: str, password_hash: str
     with conn.cursor() as cur:
         if password_hash:
             cur.execute(
-                "UPDATE users SET username=%s, role=%s, password_hash=%s WHERE user_id=%s",
+                "UPDATE users SET username=?, role=?, password_hash=? WHERE user_id=?",
                 (username, role, password_hash, user_id)
             )
         else:
             cur.execute(
-                "UPDATE users SET username=%s, role=%s WHERE user_id=%s",
+                "UPDATE users SET username=?, role=? WHERE user_id=?",
                 (username, role, user_id)
             )
     conn.commit()
@@ -265,13 +269,13 @@ def update_user(conn, user_id: int, username: str, role: str, password_hash: str
 
 def delete_user(conn, user_id: int) -> bool:
     with conn.cursor() as cur:
-        cur.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
+        cur.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
     conn.commit()
     return cur.rowcount > 0
 
 
 def count_admins(conn) -> int:
-    with conn.cursor(dictionary=True) as cur:
+    with conn.cursor() as cur:
         cur.execute("SELECT COUNT(*) AS cnt FROM users WHERE role = 'admin'")
         return cur.fetchone()["cnt"]
 
@@ -281,9 +285,9 @@ def count_admins(conn) -> int:
 # ---------------------------------------------------------------------------
 
 def get_setting(conn, user_id: int, key: str):
-    with conn.cursor(dictionary=True) as cur:
+    with conn.cursor() as cur:
         cur.execute(
-            "SELECT value FROM app_settings WHERE user_id = %s AND key_name = %s",
+            "SELECT value FROM app_settings WHERE user_id = ? AND key_name = ?",
             (user_id, key)
         )
         row = cur.fetchone()
@@ -293,8 +297,8 @@ def get_setting(conn, user_id: int, key: str):
 def set_setting(conn, user_id: int, key: str, value: str):
     with conn.cursor() as cur:
         cur.execute(
-            "INSERT INTO app_settings (user_id, key_name, value) VALUES (%s, %s, %s) "
-            "ON DUPLICATE KEY UPDATE value = VALUES(value)",
+            "INSERT INTO app_settings (user_id, key_name, value) VALUES (?, ?, ?) "
+            "ON CONFLICT(user_id, key_name) DO UPDATE SET value = excluded.value",
             (user_id, key, value)
         )
     conn.commit()

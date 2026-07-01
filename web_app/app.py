@@ -8,12 +8,11 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 from web_app.routers import dashboard, sessions, export, serials, print_session
 from web_app.routers import auth as auth_router, users as users_router, settings as settings_router
-from web_app.db_manager_dep import DatabaseManager, MYSQL_CONFIG
+from web_app.database import DatabaseManager
 from web_app.auth import NeedsLogin
 from web_app.csrf import get_csrf_token
-from web_app.dependencies import init_pool
 
-from web_app.config import SESSION_SECRET_KEY
+from web_app.config import SESSION_SECRET_KEY, DB_PATH
 
 
 @asynccontextmanager
@@ -24,10 +23,9 @@ async def lifespan(app: FastAPI):
             "SESSION_SECRET_KEY is using the default weak value — set it in .env before deploying!",
             stacklevel=2,
         )
-    db = DatabaseManager(MYSQL_CONFIG)
+    db = DatabaseManager(DB_PATH)
     db.init_db()
     db.close()
-    init_pool()
     yield
 
 

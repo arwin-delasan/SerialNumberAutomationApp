@@ -27,7 +27,10 @@ def _check_active_session(db, conn):
     active = queries.get_active_session(conn)
     if not active:
         return None
-    age_minutes = (datetime.now() - active["created_at"]).total_seconds() / 60
+    _created = active["created_at"]
+    if isinstance(_created, str):
+        _created = datetime.fromisoformat(_created)
+    age_minutes = (datetime.now() - _created).total_seconds() / 60
     if age_minutes >= SESSION_TIMEOUT_MINUTES:
         db.void_session(active["session_id"])
         return None
@@ -185,7 +188,10 @@ def print_confirm(
         return RedirectResponse("/print", status_code=303)
     if not _owns(session, user):
         return RedirectResponse("/print", status_code=303)
-    age_minutes = int((datetime.now() - session["created_at"]).total_seconds() / 60)
+    _created = session["created_at"]
+    if isinstance(_created, str):
+        _created = datetime.fromisoformat(_created)
+    age_minutes = int((datetime.now() - _created).total_seconds() / 60)
     return templates.TemplateResponse(request, "print/confirm.html", {
         "session": session,
         "error": error,

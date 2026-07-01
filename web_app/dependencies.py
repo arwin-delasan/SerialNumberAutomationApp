@@ -1,20 +1,16 @@
-import mysql.connector.pooling
-from web_app.config import MYSQL_CONFIG
-
-_pool: mysql.connector.pooling.MySQLConnectionPool | None = None
+import sqlite3
+from web_app.config import DB_PATH
 
 
-def init_pool(pool_size: int = 5) -> None:
-    global _pool
-    _pool = mysql.connector.pooling.MySQLConnectionPool(
-        pool_name="app_pool",
-        pool_size=pool_size,
-        **MYSQL_CONFIG,
-    )
+def _row_factory(cursor: sqlite3.Cursor, row: tuple) -> dict:
+    return {col[0]: row[idx] for idx, col in enumerate(cursor.description)}
 
 
 def get_db():
-    conn = _pool.get_connection()
+    conn = sqlite3.connect(DB_PATH, timeout=10, check_same_thread=False)
+    conn.row_factory = _row_factory
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA foreign_keys=ON")
     try:
         yield conn
     finally:

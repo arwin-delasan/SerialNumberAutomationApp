@@ -1,9 +1,9 @@
 from web_app.database import DatabaseManager
-from web_app.config import MYSQL_CONFIG
+from web_app.config import DB_PATH
 
 
 def get_db_manager():
-    db = DatabaseManager(MYSQL_CONFIG)
+    db = DatabaseManager(DB_PATH)
     try:
         yield db
     finally:

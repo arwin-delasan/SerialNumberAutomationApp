@@ -9,13 +9,7 @@ except ImportError:
 
 SESSION_SECRET_KEY = os.getenv("SESSION_SECRET_KEY", "change-me-in-production-32chars!")
 
-MYSQL_CONFIG = {
-    "host": os.getenv("DB_HOST", "localhost"),
-    "user": os.getenv("DB_USER", "root"),
-    "password": os.getenv("DB_PASSWORD", ""),
-    "database": os.getenv("DB_NAME", "serial_tracker"),
-    "port": int(os.getenv("DB_PORT", "3306")),
-}
+DB_PATH = os.getenv("DB_PATH", "serial_numbers.db")
 
 SERIAL_STEP = int(os.getenv("SERIAL_STEP", "1"))
 RANDOM_STEP = int(os.getenv("RANDOM_STEP", "15"))

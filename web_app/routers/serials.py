@@ -101,8 +101,8 @@ def toggle_serial_status(
     user=Depends(require_role("view_actions")),
     _csrf=Depends(csrf_protect),
 ):
-    with db.cursor(dictionary=True) as cur:
-        cur.execute("SELECT status FROM session_rows WHERE row_id = %s", (row_id,))
+    with db.cursor() as cur:
+        cur.execute("SELECT status FROM session_rows WHERE row_id = ?", (row_id,))
         row = cur.fetchone()
     if not row:
         return JSONResponse({"ok": False, "error": "Row not found"}, status_code=404)
