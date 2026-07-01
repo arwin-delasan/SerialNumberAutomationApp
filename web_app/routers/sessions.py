@@ -16,16 +16,18 @@ PAGE_SIZE = 25
 def sessions_list(
     request: Request,
     page: int = 1,
+    sort: str = "desc",
     search: str = None,
     status_filter: str = None,
     db=Depends(get_db),
     user=Depends(require_role("view_only")),
 ):
     page = max(1, page)
+    sort = sort if sort in ("asc", "desc") else "desc"
     search = search.strip() if search and search.strip() else None
     if status_filter not in ("issued", "confirmed", "partial", "voided"):
         status_filter = None
-    rows, total = queries.list_sessions(db, page, PAGE_SIZE, search=search, status_filter=status_filter)
+    rows, total = queries.list_sessions(db, page, PAGE_SIZE, search=search, status_filter=status_filter, sort=sort)
     total_pages = max(1, math.ceil(total / PAGE_SIZE))
     return templates.TemplateResponse(request, "sessions/list.html", {
         "sessions": rows,
@@ -34,6 +36,7 @@ def sessions_list(
         "total": total,
         "search": search,
         "status_filter": status_filter,
+        "sort": sort,
         "user": user,
     })
 

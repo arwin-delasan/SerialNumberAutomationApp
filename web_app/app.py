@@ -1,6 +1,5 @@
 import logging
 import os
-import sys
 from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import RedirectResponse
@@ -14,8 +13,7 @@ from web_app.auth import NeedsLogin
 from web_app.csrf import get_csrf_token
 from web_app.dependencies import init_pool
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "serial_exporter"))
-from config import SESSION_SECRET_KEY
+from web_app.config import SESSION_SECRET_KEY
 
 
 @asynccontextmanager

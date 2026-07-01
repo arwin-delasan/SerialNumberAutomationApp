@@ -4,6 +4,7 @@
 {% block content %}
 
 {% set filter_qs %}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status_filter={{ status_filter }}{% endif %}{% endset %}
+{% set sort_qs %}&sort={{ sort }}{% endset %}
 
 <!-- Top bar -->
 <div class="flex items-center px-5 py-2.5 border-b border-gray-200 bg-white shrink-0">
@@ -13,14 +14,34 @@
 <!-- Filter bar -->
 <form method="GET" action="/sessions"
       class="flex items-center justify-between px-5 py-2 border-b border-gray-100 bg-gray-50 shrink-0">
+  <input type="hidden" name="sort" value="{{ sort }}">
   <input type="hidden" name="page" value="1">
 
   <!-- Left: filters -->
   <div class="flex items-center gap-3">
+    <!-- Sort toggle -->
+    <div class="flex items-center border border-gray-300 rounded overflow-hidden text-[12px]">
+      <a href="/sessions?sort=asc&page=1{{ filter_qs }}"
+         class="px-2 py-1.5 flex items-center transition-colors
+                {% if sort == 'asc' %}text-white{% else %}bg-white text-gray-500 hover:bg-gray-50{% endif %}"
+         {% if sort == 'asc' %}style="background:#6e3f22"{% endif %}>
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/>
+        </svg>
+      </a>
+      <a href="/sessions?sort=desc&page=1{{ filter_qs }}"
+         class="px-2 py-1.5 flex items-center border-l border-gray-300 transition-colors
+                {% if sort == 'desc' %}text-white{% else %}bg-white text-gray-500 hover:bg-gray-50{% endif %}"
+         {% if sort == 'desc' %}style="background:#6e3f22"{% endif %}>
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </a>
+    </div>
     <!-- Search -->
     <input type="text" name="search" value="{{ search or '' }}"
            class="border border-gray-300 rounded px-2 py-1 text-[12px] font-mono flex-1 min-w-0 w-64 focus:outline-none focus:ring-1 focus:ring-[#6e3f22] bg-white"
-           placeholder="Search MO or started by…"/>
+           placeholder="MO or started by…"/ >
 
     <!-- Status filter -->
     <input type="hidden" id="sessionStatusInput" name="status_filter" value="{{ status_filter or '' }}">
@@ -67,7 +88,7 @@
     </button>
 
     {% if search or status_filter %}
-    <a href="/sessions?page=1"
+    <a href="/sessions?sort={{ sort }}&page=1"
        class="text-[12px] text-red-500 hover:text-red-700 font-medium transition-colors">Clear</a>
     {% endif %}
   </div>
@@ -92,7 +113,18 @@
       <tr class="border-b border-gray-200">
         <th class="w-10 px-3 py-2 text-right text-gray-400 font-normal border-r border-gray-100 select-none"></th>
         <th class="px-4 py-2 text-left font-medium text-gray-500 border-r border-gray-100">
-          <span class="text-gray-400 font-mono text-[10px] mr-1">#</span>session_id
+          <a href="/sessions?sort={% if sort == 'asc' %}desc{% else %}asc{% endif %}&page=1{{ filter_qs }}"
+             class="flex items-center gap-1.5 hover:text-blue-600 group w-fit">
+            <span class="text-gray-400 font-mono text-[10px]">#</span>
+            session_id
+            <svg class="w-3 h-3 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {% if sort == 'asc' %}
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/>
+              {% else %}
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+              {% endif %}
+            </svg>
+          </a>
         </th>
         <th class="px-4 py-2 text-left font-medium text-gray-500 border-r border-gray-100">
           <span class="text-gray-400 text-[10px] mr-1">MO</span>manufacturing_order
@@ -176,20 +208,20 @@
   <span>Page {{ page }} of {{ total_pages }}</span>
   <div class="flex items-center gap-1">
     {% if page > 1 %}
-      <a href="/sessions?page={{ page - 1 }}{{ filter_qs }}" class="px-2.5 py-1 rounded border border-gray-200 hover:bg-gray-50">← Prev</a>
+      <a href="/sessions?sort={{ sort }}&page={{ page - 1 }}{{ filter_qs }}" class="px-2.5 py-1 rounded border border-gray-200 hover:bg-gray-50">← Prev</a>
     {% else %}
       <span class="px-2.5 py-1 rounded border border-gray-100 text-gray-300 cursor-not-allowed">← Prev</span>
     {% endif %}
     <span class="px-1 text-gray-300">{{ page }} / {{ total_pages }}</span>
     {% if page < total_pages %}
-      <a href="/sessions?page={{ page + 1 }}{{ filter_qs }}" class="px-2.5 py-1 rounded border border-gray-200 hover:bg-gray-50">Next →</a>
+      <a href="/sessions?sort={{ sort }}&page={{ page + 1 }}{{ filter_qs }}" class="px-2.5 py-1 rounded border border-gray-200 hover:bg-gray-50">Next →</a>
     {% else %}
       <span class="px-2.5 py-1 rounded border border-gray-100 text-gray-300 cursor-not-allowed">Next →</span>
     {% endif %}
     <span class="w-px h-4 bg-gray-200 mx-1"></span>
     <span class="text-gray-400">Go to</span>
     <input id="sessionsPageJumper" type="number" min="1" max="{{ total_pages }}"
-           data-max="{{ total_pages }}" data-filter="{{ filter_qs }}"
+           data-max="{{ total_pages }}" data-sort="{{ sort }}" data-filter="{{ filter_qs }}"
            class="w-12 px-1.5 py-0.5 rounded border border-gray-300 text-center text-[12px] focus:outline-none focus:ring-1 focus:ring-[#6e3f22] focus:border-[#6e3f22]"
            placeholder="{{ page }}">
     <button onclick="sessionsJumpPage()" class="px-2 py-0.5 rounded border border-gray-300 hover:bg-gray-50 cursor-pointer">→</button>
@@ -207,7 +239,7 @@
       return;
     }
     input.classList.remove('border-red-400');
-    window.location.href = '/sessions?page=' + n + input.dataset.filter;
+    window.location.href = '/sessions?sort=' + input.dataset.sort + '&page=' + n + input.dataset.filter;
   }
   document.getElementById('sessionsPageJumper').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') sessionsJumpPage();

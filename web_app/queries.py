@@ -27,8 +27,9 @@ def get_recent_sessions(conn, limit=10):
         return cur.fetchall()
 
 
-def list_sessions(conn, page: int, page_size: int, search: str = None, status_filter: str = None):
+def list_sessions(conn, page: int, page_size: int, search: str = None, status_filter: str = None, sort: str = "desc"):
     offset = (page - 1) * page_size
+    order = "ASC" if sort == "asc" else "DESC"
     conditions = []
     params = []
     if search:
@@ -45,7 +46,7 @@ def list_sessions(conn, page: int, page_size: int, search: str = None, status_fi
             FROM print_sessions ps
             LEFT JOIN users u ON ps.started_by_user_id = u.user_id
             {where}
-            ORDER BY ps.created_at DESC
+            ORDER BY ps.session_id {order}
             LIMIT %s OFFSET %s
         """, (*params, page_size, offset))
         rows = cur.fetchall()

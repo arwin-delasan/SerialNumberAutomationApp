@@ -6,11 +6,6 @@ MySQL-backed data layer using mysql-connector-python.
 
 from __future__ import annotations
 
-import sys
-import os
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'serial_exporter'))
-
 import mysql.connector
 from mysql.connector import connection as cnx
 
@@ -36,7 +31,7 @@ class DatabaseManager:
     # ------------------------------------------------------------------
     def init_db(self) -> None:
         """Create tables if missing. Does NOT seed — that happens on first use."""
-        from config import SERIAL_STEP, RANDOM_STEP
+        from web_app.config import SERIAL_STEP, RANDOM_STEP
 
         conn = self.connect()
         cursor = conn.cursor()
@@ -182,7 +177,7 @@ class DatabaseManager:
 
     # ------------------------------------------------------------------
     def seed_counters(self, starting_serial: int, starting_random: int) -> None:
-        from config import SERIAL_STEP, RANDOM_STEP
+        from web_app.config import SERIAL_STEP, RANDOM_STEP
 
         conn = self.connect()
         cursor = conn.cursor()
@@ -206,7 +201,7 @@ class DatabaseManager:
 
     # ------------------------------------------------------------------
     def get_next_serial(self) -> int:
-        from config import SERIAL_STEP
+        from web_app.config import SERIAL_STEP
 
         conn = self.connect()
         cursor = conn.cursor(dictionary=True)
@@ -214,7 +209,7 @@ class DatabaseManager:
         return last_serial + SERIAL_STEP
 
     def get_next_random(self) -> int:
-        from config import RANDOM_STEP
+        from web_app.config import RANDOM_STEP
 
         conn = self.connect()
         cursor = conn.cursor(dictionary=True)
@@ -223,7 +218,7 @@ class DatabaseManager:
 
     # ------------------------------------------------------------------
     def reserve_range(self, qty: int, user_id: int = None, mo_number: str = None) -> dict:
-        from config import SERIAL_STEP, RANDOM_STEP
+        from web_app.config import SERIAL_STEP, RANDOM_STEP
 
         conn = self.connect()
         cursor = conn.cursor(dictionary=True)
@@ -282,7 +277,7 @@ class DatabaseManager:
 
     # ------------------------------------------------------------------
     def confirm_session(self, session_id: int, last_good_serial: int) -> bool:
-        from config import RANDOM_STEP, SERIAL_STEP
+        from web_app.config import RANDOM_STEP, SERIAL_STEP
 
         conn = self.connect()
         cursor = conn.cursor(dictionary=True)
@@ -336,7 +331,7 @@ class DatabaseManager:
 
     # ------------------------------------------------------------------
     def void_session(self, session_id: int) -> bool:
-        from config import SERIAL_STEP, RANDOM_STEP
+        from web_app.config import SERIAL_STEP, RANDOM_STEP
 
         conn = self.connect()
         cursor = conn.cursor(dictionary=True)

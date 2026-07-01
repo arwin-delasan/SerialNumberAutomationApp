@@ -1,7 +1,6 @@
 import os
 import csv
 import io
-import sys
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -9,8 +8,7 @@ from web_app.auth import require_role
 from web_app.dependencies import get_db
 import web_app.queries as queries
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "serial_exporter"))
-from config import SERIAL_COLUMN_HEADER, RANDOM_COLUMN_HEADER
+from web_app.config import SERIAL_COLUMN_HEADER, RANDOM_COLUMN_HEADER
 
 router = APIRouter()
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "..", "templates"))

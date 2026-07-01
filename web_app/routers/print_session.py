@@ -1,5 +1,4 @@
 import os
-import sys
 import csv
 import io
 import subprocess
@@ -13,17 +12,12 @@ from fastapi.templating import Jinja2Templates
 from web_app.auth import require_role
 from web_app.csrf import csrf_protect
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "serial_exporter"))
-from config import SERIAL_STEP, RANDOM_STEP, QUANTITY_WARN_THRESHOLD, SERIAL_COLUMN_HEADER, RANDOM_COLUMN_HEADER, SESSION_TIMEOUT_MINUTES, LBL_PATH, find_lbl_file
-from csv_exporter import write_csv
+from web_app.config import SERIAL_STEP, RANDOM_STEP, QUANTITY_WARN_THRESHOLD, SERIAL_COLUMN_HEADER, RANDOM_COLUMN_HEADER, SESSION_TIMEOUT_MINUTES, LBL_PATH, find_lbl_file
 import web_app.queries as queries
 from web_app.db_manager_dep import get_db_manager
 
 router = APIRouter(prefix="/print")
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "..", "templates"))
-
-CSV_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "serial_exporter")
-CSV_PATH = os.path.join(CSV_DIR, "print_queue.csv")
 
 ZEBRA_PROCESS = "Design.exe"
 
@@ -169,17 +163,6 @@ def print_do_start(
         if active and _owns(active, user):
             return RedirectResponse(f"/print/confirm/{active['session_id']}", status_code=303)
         return RedirectResponse("/print", status_code=303)
-
-    serials, randoms = _generate_csv(session)
-    try:
-        write_csv(serials, randoms, CSV_PATH)
-    except Exception as e:
-        import logging
-        logging.error("CSV write failed for session %s: %s", session["session_id"], e)
-        return RedirectResponse(
-            f"/print/confirm/{session['session_id']}?error=CSV+write+failed",
-            status_code=303,
-        )
 
     _open_label(conn, user["user_id"])
     return RedirectResponse(f"/print/confirm/{session['session_id']}", status_code=303)

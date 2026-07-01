@@ -20,12 +20,6 @@ class NeedsLogin(Exception):
 
 
 def require_role(min_role: str):
-    """
-    Dependency factory that enforces authentication and a minimum role level.
-    Raises NeedsLogin if not authenticated (handled in app.py → redirect to /login).
-    Raises HTTPException(403) if authenticated but insufficient role.
-    Returns the user dict on success.
-    """
     def dependency(request: Request, conn=Depends(get_db)):
         user_id = request.session.get("user_id")
         if not user_id:
@@ -38,5 +32,3 @@ def require_role(min_role: str):
             raise HTTPException(status_code=403, detail="Access denied")
         return user
     return dependency
-
-

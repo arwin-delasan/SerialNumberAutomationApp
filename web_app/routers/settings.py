@@ -1,5 +1,4 @@
 import os
-import sys
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Form, Request
@@ -10,8 +9,7 @@ from web_app.csrf import csrf_protect
 from web_app.dependencies import get_db
 import web_app.queries as queries
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "serial_exporter"))
-from config import LBL_PATH, find_lbl_file
+from web_app.config import LBL_PATH, find_lbl_file
 
 router = APIRouter(prefix="/settings")
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "..", "templates"))
@@ -24,9 +22,6 @@ def _current_lbl_state(conn, user_id: int) -> dict:
         return {"path": db_val, "source": "db"}
     if LBL_PATH != "ZebraAutomated.lbl":
         return {"path": LBL_PATH, "source": "env"}
-    discovered = find_lbl_file()
-    if discovered:
-        return {"path": discovered, "source": "auto"}
     return {"path": None, "source": "none"}
 
 

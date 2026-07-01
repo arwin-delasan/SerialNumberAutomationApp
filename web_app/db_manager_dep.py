@@ -1,10 +1,5 @@
-import sys
-import os
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "serial_exporter"))
-
 from web_app.database import DatabaseManager
-from config import MYSQL_CONFIG
+from web_app.config import MYSQL_CONFIG
 
 
 def get_db_manager():

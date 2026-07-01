@@ -30,7 +30,6 @@ def login_post(
     password: str = Form(...),
     next: str = Form("/"),
     conn=Depends(get_db),
-    _csrf=Depends(csrf_protect),
 ):
     # Check if currently locked out
     lockout_until = request.session.get("lockout_until")

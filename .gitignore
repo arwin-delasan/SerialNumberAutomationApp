@@ -7,9 +7,10 @@ __pycache__/
 *.pyo
 *.pyd
 .Python
+serial_exporter/
 env/
 venv/
 .venv/
-/serial_exporter/__pycache__
 node_modules/
 package-lock.json
+ZebraAutomated.lbl
