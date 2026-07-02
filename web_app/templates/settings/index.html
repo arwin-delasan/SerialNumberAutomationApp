@@ -106,6 +106,24 @@
       </form>
     </div>
 
+    <!-- Shutdown card -->
+    <div class="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden">
+      <div class="px-6 py-4 border-b border-red-100 bg-red-50">
+        <h2 class="text-sm font-semibold text-red-700">Stop Server</h2>
+        <p class="text-[12px] text-red-400 mt-0.5">Stops the server running on your machine.</p>
+      </div>
+      <div class="px-6 py-5">
+        <form method="POST" action="/settings/shutdown"
+              onsubmit="return confirm('Stop the server on your machine?')">
+          <input type="hidden" name="_csrf" value="{{ request.session.get('csrf_token', '') }}">
+          <button type="submit"
+                  class="bg-red-600 hover:bg-red-700 text-white text-[12px] cursor-pointer font-semibold px-4 py-2 rounded-lg transition-colors">
+            Stop Server
+          </button>
+        </form>
+      </div>
+    </div>
+
   </div>
 </div>
 {% endblock %}

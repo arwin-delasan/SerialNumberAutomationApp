@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign In  - Serial Tracker</title>
+  <link rel="stylesheet" href="/static/tailwind.css">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  </style>
+  <link rel="icon" type="image/jpeg" href="https://www.freepnglogos.com/uploads/barcode-png/barcode-openkm-18.png" />
+</head>
+<body class="bg-[#3b2314] min-h-screen flex items-center justify-center">
+
+  <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-8 space-y-5 scale-125">
+
+    <!-- Logo + title -->
+    <div class="flex flex-col items-center gap-2">
+      <div class="w-10 h-10 rounded-lg flex items-center justify-center">
+         <img src="https://www.sawo.com/wp-content/uploads/2021/03/cropped-S_Logo.jpg" alt="SAWO" class="w-10 h-10 rounded-md object-cover" />
+      </div>
+      <h1 class="text-base font-semibold text-gray-800">Serial Tracker</h1>
+      <p class="text-[11px] text-gray-400">Sign in to continue</p>
+    </div>
+
+    {% if error %}
+    <div class="bg-red-50 border border-red-200 text-red-700 text-[12px] rounded-lg px-4 py-2.5">
+      {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="POST" action="/login" class="space-y-4">
+      <input type="hidden" name="next" value="{{ next }}" />
+      <input type="hidden" name="_csrf" value="{{ request.session.get('csrf_token', '') }}">
+
+      <div class="space-y-1.5">
+        <label class="block text-[12px] font-medium text-gray-700">Username</label>
+        <input
+          name="username"
+          type="text"
+          autofocus
+          required
+          autocomplete="username"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+        />
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="block text-[12px] font-medium text-gray-700">Password</label>
+        <input
+          name="password"
+          type="password"
+          required
+          autocomplete="current-password"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+        />
+      </div>
+
+      <button
+        type="submit"
+        class="w-full bg-[#6e3f22] hover:bg-[#4d2e17] text-white text-[13px] font-semibold py-2.5 rounded-lg transition-colors"
+      >
+        Sign In
+      </button>
+    </form>
+
+  </div>
+
+<script>
+  document.addEventListener('submit', function(e) {
+    if (e.defaultPrevented) return;
+    e.target.querySelectorAll('[type="submit"]').forEach(function(btn) {
+      btn.disabled = true;
+      btn.classList.add('opacity-50', 'cursor-not-allowed');
+    });
+  });
+</script>
+
+</body>
+</html>

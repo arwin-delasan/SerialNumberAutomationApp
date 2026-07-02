@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Serial Tracker{% endblock %}</title>
+  <link rel="stylesheet" href="/static/tailwind.css">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .nav-active { background: rgba(255,255,255,0.12); }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+  </style>
+  <link rel="icon" type="image/jpeg" href="https://www.freepnglogos.com/uploads/barcode-png/barcode-openkm-18.png" />
+  <meta name="csrf-token" content="{{ request.session.get('csrf_token', '') }}">
+</head>
+<body class="bg-gray-50 h-screen flex overflow-hidden text-[13px]">
+
+  <!-- Sidebar -->
+  <aside class="w-56 shrink-0 bg-[#3b2314] flex flex-col h-screen text-gray-300">
+
+    <!-- Logo -->
+    <div class="px-4 py-4 flex items-center gap-2.5 border-b border-white/10">
+      <img src="https://www.sawo.com/wp-content/uploads/2021/03/cropped-S_Logo.jpg" alt="SAWO" class="w-7 h-7 rounded-md object-cover" />
+      <span class="font-semibold text-white text-sm">Serial Tracker</span>
+    </div>
+
+    
+    <!-- Nav -->
+    <nav class="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
+
+      <p class="px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500">Views</p>
+
+       <a href="/" class="flex items-center gap-2.5 px-2 py-1.5 rounded-md text-gray-300 hover:bg-white/10 transition-colors {% if request.url.path == '/' %}nav-active text-white{% endif %}">
+        <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
+        </svg>
+        Dashboard
+      </a>
+
+
+      <a href="/serials" class="flex items-center gap-2.5 px-2 py-1.5 rounded-md text-gray-300 hover:bg-white/10 transition-colors {% if request.url.path == '/serials' %}nav-active text-white{% endif %}">
+        <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 6h18M3 14h18M3 18h18"/>
+        </svg>
+        Serial Numbers
+      </a>
+
+      <a href="/sessions" class="flex items-center gap-2.5 px-2 py-1.5 rounded-md text-gray-300 hover:bg-white/10 transition-colors {% if request.url.path.startswith('/sessions') %}nav-active text-white{% endif %}">
+        <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+        Print Sessions
+      </a>
+
+
+      {% if user and user.role in ('view_actions', 'admin') %}
+      <p class="px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500">Actions</p>
+      <a href="/print" class="flex items-center gap-2.5 px-2 py-1.5 rounded-md text-gray-300 hover:bg-white/10 transition-colors {% if request.url.path.startswith('/print') %}nav-active text-white{% endif %}">
+        <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+        </svg>
+        Print
+      </a>
+      <a href="/settings" class="flex items-center gap-2.5 px-2 py-1.5 rounded-md text-gray-300 hover:bg-white/10 transition-colors {% if request.url.path.startswith('/settings') %}nav-active text-white{% endif %}">
+        <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        Settings
+      </a>
+      {% endif %}
+
+
+      {% if user and user.role == 'admin' %}
+      <p class="px-2 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500">Admin</p>
+      <a href="/users" class="flex items-center gap-2.5 px-2 py-1.5 rounded-md text-gray-300 hover:bg-white/10 transition-colors {% if request.url.path.startswith('/users') %}nav-active text-white{% endif %}">
+        <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+        </svg>
+        Users
+      </a>
+      {% endif %}
+
+    </nav>
+
+    <!-- Footer -->
+    <div class="px-4 py-3 border-t border-white/10 space-y-2">
+      {% if user %}
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-[11px] text-gray-300 font-medium">{{ user.username }}</p>
+          <p class="text-[10px] text-gray-500">
+            {% if user.role == 'admin' %}Admin
+            {% elif user.role == 'view_actions' %}View + Actions
+            {% else %}View Only{% endif %}
+          </p>
+        </div>
+        <form method="POST" action="/logout">
+          <input type="hidden" name="_csrf" value="{{ request.session.get('csrf_token', '') }}">
+          <button type="submit" class="text-[11px] cursor-pointer text-gray-400 hover:text-white transition-colors">Sign out</button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+
+  </aside>
+
+  <!-- Main -->
+  <div class="flex-1 flex flex-col h-screen overflow-hidden">
+    {% block content %}{% endblock %}
+  </div>
+
+<script>
+  document.addEventListener('submit', function(e) {
+    if (e.defaultPrevented) return;
+    e.target.querySelectorAll('[type="submit"]').forEach(function(btn) {
+      btn.disabled = true;
+      btn.classList.add('opacity-50', 'cursor-not-allowed');
+    });
+  });
+</script>
+
+</body>
+</html>

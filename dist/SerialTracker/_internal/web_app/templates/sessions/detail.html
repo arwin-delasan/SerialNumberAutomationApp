@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Session #{{ session.session_id }}  - Serial Tracker{% endblock %}
+
+{% block content %}
+
+<!-- Top bar -->
+<div class="flex items-center gap-3 px-5 py-2.5 border-b border-gray-200 bg-white shrink-0">
+  <a href="/sessions" class="text-gray-400 hover:text-gray-600 text-[12px]">← Sessions</a>
+  <span class="text-gray-300">/</span>
+  <span class="text-[12px] font-mono text-gray-600">session #{{ session.session_id }}</span>
+  <div class="ml-2">
+    {% if session.status == 'confirmed' %}
+      <span class="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-100 text-green-700">Confirmed</span>
+    {% elif session.status == 'partial' %}
+      <span class="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-yellow-100 text-yellow-700">Partial</span>
+    {% elif session.status == 'issued' %}
+      <span class="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-100 text-blue-700">Issued</span>
+    {% else %}
+      <span class="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-100 text-red-600">Voided</span>
+    {% endif %}
+  </div>
+</div>
+
+<div class="flex-1 overflow-y-auto">
+
+  <!-- Session meta -->
+  <div class="px-6 py-5 border-b border-gray-100 bg-white">
+    <div class="grid grid-cols-3 gap-x-8 gap-y-4 text-[12px]">
+      <div>
+        <p class="text-gray-400 font-medium mb-0.5">Manufacturing Order</p>
+        <p class="font-mono text-gray-800 font-semibold">{{ session.mo_number or "—" }}</p>
+      </div>
+      <div>
+        <p class="text-gray-400 font-medium mb-0.5">Serial Range</p>
+        <p class="font-mono text-gray-800 font-semibold">{{ "{:,}".format(session.serial_range_start) }} – {{ "{:,}".format(session.serial_range_end) }}</p>
+      </div>
+      <div>
+        <p class="text-gray-400 font-medium mb-0.5">Random Range</p>
+        <p class="font-mono text-gray-600">{{ "{:,}".format(session.random_range_start) }} – {{ "{:,}".format(session.random_range_end) }}</p>
+      </div>
+      <div>
+        <p class="text-gray-400 font-medium mb-0.5">Quantity Requested</p>
+        <p class="font-mono text-gray-800">{{ "{:,}".format(session.quantity_requested) }}</p>
+      </div>
+      <div>
+        <p class="text-gray-400 font-medium mb-0.5">Started By</p>
+        <p class="font-mono text-gray-800">{{ session.started_by_username or "—" }}</p>
+      </div>
+      <div>
+        <p class="text-gray-400 font-medium mb-0.5">Created At</p>
+        <p class="text-gray-600">{{ session.created_at }}</p>
+      </div>
+      <div>
+        <p class="text-gray-400 font-medium mb-0.5">Confirmed At</p>
+        <p class="text-gray-600">{{ session.confirmed_at if session.confirmed_at else "—" }}</p>
+      </div>
+      {% if session.confirmed_good_through_serial %}
+      <div>
+        <p class="text-gray-400 font-medium mb-0.5">Good Through Serial</p>
+        <p class="font-mono text-gray-800">{{ "{:,}".format(session.confirmed_good_through_serial) }}</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Rows table -->
+  <div class="px-6 pt-5">
+    <div class="flex items-center justify-between mb-3">
+      <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+        Printed Rows{% if total_rows %} ({{ "{:,}".format(total_rows) }}){% endif %}
+      </p>
+      {% if rows %}
+      <a href="/export/download?start_serial={{ session.serial_range_start }}&end_serial={{ session.serial_range_end }}"
+         class="flex items-center gap-1.5 text-[11px] text-blue-600 hover:underline">
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        Export this session
+      </a>
+      {% endif %}
+    </div>
+
+    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6">
+      {% if rows %}
+      <table class="w-full text-[12px]">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th class="w-10 px-3 py-2 text-right text-gray-400 font-normal border-r border-gray-100 select-none"></th>
+            <th class="px-4 py-2 text-left font-medium text-gray-500 border-r border-gray-100">
+              <span class="font-mono text-[10px] text-gray-400 mr-1">#</span>serial_number
+            </th>
+            <th class="px-4 py-2 text-left font-medium text-gray-500">
+              <span class="font-mono text-[10px] text-gray-400 mr-1">#</span>random_number
+            </th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {% for row in rows %}
+          <tr class="hover:bg-gray-50">
+            <td class="px-3 py-1.5 text-right text-gray-300 border-r border-gray-100 tabular-nums select-none text-[11px]">{{ (page - 1) * 100 + loop.index }}</td>
+            <td class="px-4 py-1.5 font-mono text-gray-800 border-r border-gray-100 tabular-nums">{{ "{:,}".format(row.serial_number) }}</td>
+            <td class="px-4 py-1.5 font-mono text-gray-600 tabular-nums">{{ "{:,}".format(row.random_number) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="px-4 py-8 text-center text-gray-400 text-[12px]">No rows recorded for this session.</p>
+      {% endif %}
+    </div>
+
+    {% if total_pages > 1 %}
+    <div class="flex items-center justify-between py-3 text-[12px] text-gray-500 mb-6">
+      <span>
+        Showing {{ "{:,}".format((page - 1) * 100 + 1) }}–{{ "{:,}".format([(page * 100), total_rows] | min) }} of {{ "{:,}".format(total_rows) }}
+      </span>
+      <div class="flex items-center gap-1">
+        {% if page > 1 %}
+          <a href="/sessions/{{ session.session_id }}?page={{ page - 1 }}"
+             class="px-2.5 py-1 rounded border border-gray-200 hover:bg-gray-50">← Prev</a>
+        {% else %}
+          <span class="px-2.5 py-1 rounded border border-gray-100 text-gray-300 cursor-not-allowed">← Prev</span>
+        {% endif %}
+        <span class="px-1 text-gray-500">{{ page }} / {{ total_pages }}</span>
+        {% if page < total_pages %}
+          <a href="/sessions/{{ session.session_id }}?page={{ page + 1 }}"
+             class="px-2.5 py-1 rounded border border-gray-200 hover:bg-gray-50">Next →</a>
+        {% else %}
+          <span class="px-2.5 py-1 rounded border border-gray-100 text-gray-300 cursor-not-allowed">Next →</span>
+        {% endif %}
+        <span class="w-px h-4 bg-gray-200 mx-1"></span>
+        <span class="text-gray-400">Go to</span>
+        <input id="detailPageJumper" type="number" min="1" max="{{ total_pages }}"
+               data-max="{{ total_pages }}" data-session="{{ session.session_id }}"
+               class="w-12 px-1.5 py-0.5 rounded border border-gray-300 text-center text-[12px] focus:outline-none focus:ring-1 focus:ring-[#6e3f22] focus:border-[#6e3f22]"
+               placeholder="{{ page }}">
+        <button onclick="detailJumpPage()" class="px-2 py-0.5 rounded border border-gray-300 hover:bg-gray-50 cursor-pointer">→</button>
+      </div>
+    </div>
+    <script>
+      function detailJumpPage() {
+        var input = document.getElementById('detailPageJumper');
+        var n = parseInt(input.value, 10);
+        var max = parseInt(input.dataset.max, 10);
+        if (isNaN(n) || n < 1 || n > max) {
+          input.classList.add('border-red-400');
+          input.focus();
+          return;
+        }
+        input.classList.remove('border-red-400');
+        window.location.href = '/sessions/' + input.dataset.session + '?page=' + n;
+      }
+      document.getElementById('detailPageJumper').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') detailJumpPage();
+      });
+    </script>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

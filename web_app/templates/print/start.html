@@ -23,7 +23,7 @@
         <p class="text-sm font-semibold text-gray-800">Print session in progress</p>
         <p class="text-[12px] text-gray-500">
           <span class="font-medium text-gray-700">{{ locked_by }}</span> is currently printing
-          {% if locked_since %}· started at {{ locked_since.strftime('%H:%M') }}{% endif %}
+          {% if locked_since %}· started at {{ locked_since[11:16] if locked_since is string else locked_since.strftime('%H:%M') }}{% endif %}
         </p>
       </div>
       <p class="text-[11px] text-gray-400">Please wait until their session is complete before starting a new one.</p>

@@ -1,8 +1,9 @@
 import os
+import threading
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from web_app.auth import require_role
 from web_app.csrf import csrf_protect
@@ -73,3 +74,16 @@ def settings_save_lbl(
         return RedirectResponse("/settings?error=File+not+found", status_code=303)
     queries.set_setting(conn, user["user_id"], "lbl_path", str(resolved))
     return RedirectResponse("/settings?saved=1", status_code=303)
+
+
+@router.post("/shutdown")
+def shutdown_server(
+    user=Depends(require_role("view_only")),
+    _csrf=Depends(csrf_protect),
+):
+    def _stop():
+        import time
+        time.sleep(0.5)
+        os._exit(0)
+    threading.Thread(target=_stop, daemon=True).start()
+    return JSONResponse({"ok": True})

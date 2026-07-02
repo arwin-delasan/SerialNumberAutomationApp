@@ -103,7 +103,7 @@ def toggle_serial_status(
 ):
     cur = db.cursor()
     cur.execute("SELECT status FROM session_rows WHERE row_id = ?", (row_id,))
-        row = cur.fetchone()
+    row = cur.fetchone()
     if not row:
         return JSONResponse({"ok": False, "error": "Row not found"}, status_code=404)
     new_status = "used" if row["status"] == "unused" else "unused"
